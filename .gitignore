@@ -1,0 +1,23 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/*.log
+backend/*.log
+
+# Local tooling and editor state
+.vs/
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db
+.DS_Store
