@@ -27,6 +27,9 @@ public static class DependencyInjection
         ValidateJwtOptions(configuration);
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IHrDashboardRepository, HrDashboardRepository>();
+        services.AddScoped<IHrEmployeeRepository, HrEmployeeRepository>();
+        services.AddScoped<IHrAbsenceRepository, HrAbsenceRepository>();
         services.AddScoped<IPasswordHashService, PasswordHashService>();
         services.AddSingleton<ITokenService, JwtTokenService>();
 

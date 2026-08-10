@@ -47,6 +47,7 @@ cd backend
 $env:ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=mis_dev;Username=postgres;Password=YOUR_DEV_DB_PASSWORD"
 $env:Jwt__SecretKey="replace-with-a-long-random-dev-secret-at-least-32-bytes"
 $env:Seed__AdminPassword="choose-a-strong-development-password"
+$env:Seed__HrPassword="choose-a-strong-development-hr-password"
 dotnet restore
 dotnet build
 dotnet run --project MIS.API
@@ -66,8 +67,14 @@ dotnet run
 Development seed user:
 
 - Username: `admin`
-- Role: `Admin`
+- Department: `ADMIN`
 - Password: supplied by `Seed:AdminPassword`
+
+Development HR user (when `Seed:HrPassword` is configured):
+
+- Username: `hr.user`
+- Department: `HR`
+- Password: supplied by `Seed:HrPassword`
 
 The seed password is intentionally not checked into source control.
 
@@ -119,7 +126,11 @@ VITE_API_URL=http://localhost:5000/api
 Routes:
 
 - `/login` - MIS branded sign-in page
-- `/dashboard` - protected dashboard placeholder
+- `/hr` and `/hr/dashboard` - protected HR dashboard
+- `/hr/delegations` - تفويضات placeholder
+- `/hr/absences` - غيابات الشركة placeholder
+- `/hr/employee-documents` - أوراق الموظفين placeholder
+- `/hr/master` - Master placeholder
 
 ## Authentication Flow
 
@@ -128,7 +139,8 @@ Routes:
 3. Password verification uses ASP.NET Core `PasswordHasher<T>`.
 4. The API returns a JWT access token and safe user profile fields.
 5. React stores the token in `sessionStorage` or `localStorage` depending on "Remember me".
-6. Protected routes redirect unauthenticated users to `/login`.
+6. Department is read from the database, included in the signed JWT, and used for post-login routing.
+7. HR API endpoints enforce the `HrDepartment` policy server-side; frontend guards provide the matching navigation boundary.
 
 ## API Error Format
 

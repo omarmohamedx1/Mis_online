@@ -16,17 +16,29 @@ public static class ApplicationDbSeeder
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("MIS.Seed");
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var adminPassword = configuration["Seed:AdminPassword"];
-
-        if (string.IsNullOrWhiteSpace(adminPassword))
-        {
-            logger.LogWarning("Development admin user was not seeded because Seed:AdminPassword is not configured.");
-            return;
-        }
-
         await dbContext.Database.MigrateAsync();
 
         var now = DateTimeOffset.UtcNow;
+        var departments = new[]
+        {
+            ("Human Resources", DepartmentCodes.Hr),
+            ("Legal", DepartmentCodes.Legal),
+            ("Administration", DepartmentCodes.Admin),
+            ("Data Entry", DepartmentCodes.DataEntry),
+            ("Accounting", DepartmentCodes.Accounting)
+        };
+
+        foreach (var (name, code) in departments)
+        {
+            if (!await dbContext.Departments.AnyAsync(x => x.Code == code))
+            {
+                dbContext.Departments.Add(new Department(name, code, now));
+            }
+        }
+
+        await dbContext.SaveChangesAsync();
+        var adminDepartment = await dbContext.Departments.SingleAsync(x => x.Code == DepartmentCodes.Admin);
+        var hrDepartment = await dbContext.Departments.SingleAsync(x => x.Code == DepartmentCodes.Hr);
         var adminRole = await dbContext.Roles.SingleOrDefaultAsync(role => role.Name == SystemRoleNames.Admin);
 
         if (adminRole is null)
@@ -35,6 +47,7 @@ public static class ApplicationDbSeeder
             dbContext.Roles.Add(adminRole);
         }
 
+        var adminPassword = configuration["Seed:AdminPassword"];
         var username = configuration["Seed:AdminUsername"] ?? "admin";
         var email = configuration["Seed:AdminEmail"] ?? "admin@mis.local";
         var fullName = configuration["Seed:AdminFullName"] ?? "MIS Administrator";
@@ -43,15 +56,42 @@ public static class ApplicationDbSeeder
             .Include(user => user.UserRoles)
             .SingleOrDefaultAsync(user => user.Username == username);
 
-        if (adminUser is null)
+        if (adminUser is null && !string.IsNullOrWhiteSpace(adminPassword))
         {
-            adminUser = new User(username, email, "temporary-seed-hash", fullName, now);
+            adminUser = new User(username, email, "temporary-seed-hash", fullName, adminDepartment.Id, now);
             dbContext.Users.Add(adminUser);
         }
 
-        var passwordHash = new PasswordHasher<User>().HashPassword(adminUser, adminPassword);
-        adminUser.SetPasswordHash(passwordHash, now);
-        adminUser.AssignRole(adminRole, now);
+        if (adminUser is not null && !string.IsNullOrWhiteSpace(adminPassword))
+        {
+            adminUser.SetPasswordHash(new PasswordHasher<User>().HashPassword(adminUser, adminPassword), now);
+            adminUser.AssignRole(adminRole, now);
+        }
+
+        var hrPassword = configuration["Seed:HrPassword"];
+        var hrUsername = configuration["Seed:HrUsername"] ?? "hr.user";
+        var hrUser = await dbContext.Users.Include(x => x.UserRoles).SingleOrDefaultAsync(x => x.Username == hrUsername);
+        if (hrUser is null && !string.IsNullOrWhiteSpace(hrPassword))
+        {
+            hrUser = new User(
+                hrUsername,
+                configuration["Seed:HrEmail"] ?? "hr@mis.local",
+                "temporary-seed-hash",
+                configuration["Seed:HrFullName"] ?? "HR User",
+                hrDepartment.Id,
+                now);
+            dbContext.Users.Add(hrUser);
+        }
+
+        if (hrUser is not null && !string.IsNullOrWhiteSpace(hrPassword))
+        {
+            hrUser.SetPasswordHash(new PasswordHasher<User>().HashPassword(hrUser, hrPassword), now);
+        }
+
+        if (string.IsNullOrWhiteSpace(adminPassword) && string.IsNullOrWhiteSpace(hrPassword))
+        {
+            logger.LogWarning("No development users were seeded because seed passwords are not configured.");
+        }
 
         await dbContext.SaveChangesAsync();
     }

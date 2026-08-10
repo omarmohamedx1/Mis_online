@@ -41,6 +41,11 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasIndex(user => user.Email)
             .IsUnique();
 
+        builder.HasOne(user => user.Department)
+            .WithMany()
+            .HasForeignKey(user => user.DepartmentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasMany(user => user.UserRoles)
             .WithOne(userRole => userRole.User)
             .HasForeignKey(userRole => userRole.UserId)

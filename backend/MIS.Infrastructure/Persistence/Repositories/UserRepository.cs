@@ -18,6 +18,7 @@ public sealed class UserRepository : IUserRepository
         var normalizedLookup = usernameOrEmail.Trim().ToLowerInvariant();
 
         return _dbContext.Users
+            .Include(user => user.Department)
             .Include(user => user.UserRoles)
             .ThenInclude(userRole => userRole.Role)
             .FirstOrDefaultAsync(

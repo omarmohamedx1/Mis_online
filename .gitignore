@@ -13,10 +13,19 @@ frontend/.env.*
 frontend/*.log
 backend/*.log
 
+# Environment secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
 # Local tooling and editor state
 .vs/
 .vscode/
 .idea/
+.runtime/
 
 # OS files
 Thumbs.db

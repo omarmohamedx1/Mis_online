@@ -8,7 +8,7 @@ public sealed class User
     {
     }
 
-    public User(string username, string email, string passwordHash, string fullName, DateTimeOffset createdAt)
+    public User(string username, string email, string passwordHash, string fullName, Guid departmentId, DateTimeOffset createdAt)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(username);
         ArgumentException.ThrowIfNullOrWhiteSpace(email);
@@ -20,6 +20,7 @@ public sealed class User
         Email = email.Trim();
         PasswordHash = passwordHash;
         FullName = fullName.Trim();
+        DepartmentId = departmentId;
         IsActive = true;
         CreatedAt = createdAt;
     }
@@ -33,6 +34,10 @@ public sealed class User
     public string PasswordHash { get; private set; } = string.Empty;
 
     public string FullName { get; private set; } = string.Empty;
+
+    public Guid DepartmentId { get; private set; }
+
+    public Department Department { get; private set; } = null!;
 
     public bool IsActive { get; private set; } = true;
 

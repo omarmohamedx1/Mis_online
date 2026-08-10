@@ -11,6 +11,7 @@ export interface AuthenticatedUser {
   id: string;
   username: string;
   fullName: string;
+  department: string;
   role: string;
   roles: string[];
 }

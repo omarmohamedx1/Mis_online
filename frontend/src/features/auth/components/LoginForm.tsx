@@ -10,6 +10,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { getApiErrorMessage } from '../../../services/apiClient';
 import type { LoginFormValues } from '../types/auth';
 import { validateLogin, type LoginValidationErrors } from '../validation/loginValidation';
+import { useLocalization } from '../../../context/LocalizationContext';
 
 interface RouteState {
   from?: {
@@ -19,10 +20,11 @@ interface RouteState {
 
 export function LoginForm() {
   const { login } = useAuth();
+  const { t } = useLocalization();
   const navigate = useNavigate();
   const location = useLocation();
   const routeState = location.state as RouteState | null;
-  const redirectTo = routeState?.from?.pathname ?? '/dashboard';
+  const redirectTo = routeState?.from?.pathname ?? '/';
 
   const [values, setValues] = useState<LoginFormValues>({
     username: '',
@@ -37,7 +39,7 @@ export function LoginForm() {
     event.preventDefault();
     setFormError('');
 
-    const validationErrors = validateLogin(values);
+    const validationErrors = validateLogin(values, { usernameRequired: t('usernameRequired'), passwordRequired: t('passwordRequired') });
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length > 0) {
@@ -56,7 +58,7 @@ export function LoginForm() {
       );
       navigate(redirectTo, { replace: true });
     } catch (error) {
-      setFormError(getApiErrorMessage(error, 'Invalid username or password.'));
+      setFormError(getApiErrorMessage(error, t('invalidCredentials')));
     } finally {
       setIsSubmitting(false);
     }
@@ -69,10 +71,10 @@ export function LoginForm() {
       <TextInput
         autoComplete="username"
         error={errors.username}
-        label="Email / Username"
+        label={t('username')}
         name="username"
         onChange={(event) => setValues((current) => ({ ...current, username: event.target.value }))}
-        placeholder="admin or name@company.com"
+        placeholder={t('usernamePlaceholder')}
         required
         value={values.username}
       />
@@ -80,10 +82,10 @@ export function LoginForm() {
       <PasswordInput
         autoComplete="current-password"
         error={errors.password}
-        label="Password"
+        label={t('password')}
         name="password"
         onChange={(event) => setValues((current) => ({ ...current, password: event.target.value }))}
-        placeholder="Enter your password"
+        placeholder={t('passwordPlaceholder')}
         required
         value={values.password}
       />
@@ -91,17 +93,17 @@ export function LoginForm() {
       <div className="flex items-center justify-between gap-4">
         <Checkbox
           checked={values.rememberMe}
-          label="Remember me"
+          label={t('rememberMe')}
           name="rememberMe"
           onChange={(event) => setValues((current) => ({ ...current, rememberMe: event.target.checked }))}
         />
         <a className="text-sm font-semibold text-mis-primary transition hover:text-mis-deep" href="/login">
-          Forgot Password?
+          {t('forgotPassword')}
         </a>
       </div>
 
       <Button isLoading={isSubmitting} leftIcon={<LogIn className="h-4 w-4" aria-hidden="true" />} type="submit">
-        {isSubmitting ? 'Signing In' : 'Sign In'}
+        {isSubmitting ? t('signingIn') : t('signIn')}
       </Button>
     </form>
   );

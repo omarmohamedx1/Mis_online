@@ -68,6 +68,7 @@ public sealed class AuthService : IAuthService
             user.Id,
             user.Username,
             user.FullName,
+            user.Department.Code,
             primaryRole,
             roles);
 

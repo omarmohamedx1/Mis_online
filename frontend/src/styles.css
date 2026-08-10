@@ -26,6 +26,16 @@ body {
   background: #f7f9fc;
 }
 
+:root { --hr-sidebar-space: 0px; }
+@media (min-width: 1024px) { :root { --hr-sidebar-space: 18rem; } }
+
+[dir='rtl'] .text-left,
+[dir='rtl'] .text-right { text-align: right; }
+[dir='rtl'] table[dir='ltr'] { direction: rtl; text-align: right; }
+[dir='rtl'] .left-3 { left: auto; right: 0.75rem; }
+[dir='rtl'] .pl-10 { padding-left: 0.75rem; padding-right: 2.5rem; }
+[dir='rtl'] .pr-3 { padding-left: 0.75rem; }
+
 button,
 input {
   font: inherit;

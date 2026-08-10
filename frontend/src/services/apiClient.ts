@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { env } from '../config/env';
 import type { ApiErrorResponse } from '../types/api';
-import { getStoredAuth } from '../utils/storage';
+import { clearStoredAuth, getStoredAuth } from '../utils/storage';
 
 export const apiClient = axios.create({
   baseURL: env.apiUrl,
@@ -19,6 +19,21 @@ apiClient.interceptors.request.use((config) => {
 
   return config;
 });
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError<ApiErrorResponse>) => {
+    if (error.response?.status === 401 && getStoredAuth()) {
+      clearStoredAuth();
+
+      if (window.location.pathname !== '/login') {
+        window.location.assign('/login');
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);
 
 export function getApiErrorMessage(error: unknown, fallbackMessage: string): string {
   if (axios.isAxiosError<ApiErrorResponse>(error)) {

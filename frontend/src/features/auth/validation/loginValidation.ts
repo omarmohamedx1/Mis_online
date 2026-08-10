@@ -5,15 +5,15 @@ export interface LoginValidationErrors {
   password?: string;
 }
 
-export function validateLogin(values: LoginFormValues): LoginValidationErrors {
+export function validateLogin(values: LoginFormValues, messages: { usernameRequired: string; passwordRequired: string }): LoginValidationErrors {
   const errors: LoginValidationErrors = {};
 
   if (!values.username.trim()) {
-    errors.username = 'Email or username is required.';
+    errors.username = messages.usernameRequired;
   }
 
   if (!values.password) {
-    errors.password = 'Password is required.';
+    errors.password = messages.passwordRequired;
   }
 
   return errors;

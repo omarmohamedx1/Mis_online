@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react';
 import misLogo from '../../assets/mis-logo.svg';
+import { useLocalization } from '../../context/LocalizationContext';
 
 interface AuthLayoutProps {
   children: ReactNode;
 }
 
 export function AuthLayout({ children }: AuthLayoutProps) {
+  const { t } = useLocalization();
   return (
     <main className="min-h-screen overflow-hidden bg-mis-surface text-mis-ink md:grid md:grid-cols-[0.78fr_1fr] lg:grid-cols-[1.12fr_0.88fr]">
       <section className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-white px-10 py-10 md:flex xl:px-16">
@@ -21,16 +23,16 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         <div className="relative z-10">
           <img src={misLogo} alt="MIS Collection Firm" className="h-28 w-auto" />
           <div className="mt-10 max-w-md">
-            <p className="text-sm font-semibold uppercase text-mis-primary">MIS Collection Firm</p>
+            <p className="text-sm font-semibold uppercase text-mis-primary">{t('collectionFirm')}</p>
             <h1 className="mt-4 text-4xl font-bold text-mis-navy">MIS</h1>
-            <p className="mt-3 text-xl font-semibold text-mis-deep">Collection Management System</p>
-            <p className="mt-6 text-base leading-7 text-slate-600">Secure. Organized. Efficient.</p>
+            <p className="mt-3 text-xl font-semibold text-mis-deep">{t('collectionSystem')}</p>
+            <p className="mt-6 text-base leading-7 text-slate-600">{t('secureTagline')}</p>
           </div>
         </div>
 
         <div className="relative z-10 flex items-end justify-between gap-6 text-sm text-slate-500">
-          <span>Internal Management System</span>
-          <span>&copy; MIS Collection Firm</span>
+          <span>{t('internalSystem')}</span>
+          <span>&copy; {t('collectionFirm')}</span>
         </div>
       </section>
 

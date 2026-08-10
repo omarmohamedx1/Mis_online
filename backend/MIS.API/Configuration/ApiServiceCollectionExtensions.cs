@@ -7,6 +7,8 @@ using MIS.Application.Interfaces;
 using MIS.Application.Services;
 using MIS.Infrastructure;
 using MIS.Infrastructure.Authentication;
+using MIS.API.Authorization;
+using MIS.Domain.Constants;
 
 namespace MIS.API.Configuration;
 
@@ -50,7 +52,12 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<IAuthService, AuthService>();
         services.AddInfrastructureServices(configuration);
         services.AddJwtAuthentication(configuration);
-        services.AddAuthorization();
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(
+                AuthorizationPolicies.HrDepartment,
+                policy => policy.RequireAuthenticatedUser().RequireClaim("department", DepartmentCodes.Hr));
+        });
 
         return services;
     }
