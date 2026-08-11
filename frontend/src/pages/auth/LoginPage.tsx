@@ -17,7 +17,7 @@ export function LoginPage() {
     <AuthLayout>
       <div className="rounded-2xl border border-white/80 bg-white p-6 shadow-panel sm:p-8">
         <div className="mb-8">
-          <img src={misLogo} alt="MIS Collection Firm" className="mb-5 h-20 w-auto md:hidden" />
+          <img src={misLogo} alt={t('companyLogoAlt')} className="mb-5 h-20 w-auto md:hidden" />
           <p className="text-sm font-semibold uppercase text-mis-primary">{t('collectionFirm')}</p>
           <h2 className="mt-3 text-3xl font-bold text-mis-navy">{t('welcomeBack')}</h2>
           <p className="mt-2 text-sm text-slate-500">{t('signInSubtitle')}</p>
@@ -26,7 +26,7 @@ export function LoginPage() {
         <LoginForm />
 
         <div className="mt-8 border-t border-mis-border pt-5 text-center">
-          <p className="text-sm font-semibold text-mis-navy">MIS Collection Firm</p>
+          <p className="text-sm font-semibold text-mis-navy">{t('collectionFirm')}</p>
           <p className="mt-1 text-sm text-slate-500">{t('internalSystem')}</p>
         </div>
       </div>

@@ -1,47 +1,297 @@
-import { CalendarX2, ChevronLeft, ChevronRight, Eye, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { CalendarX2, Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Button } from '../../components/common/Button';
+import { EmptyState } from '../../components/common/EmptyState';
+import { ErrorState } from '../../components/common/ErrorState';
+import { FormError } from '../../components/common/FormError';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
-import { hrAbsenceService } from '../../features/hr/services/hrAbsenceService';
-import type { AbsenceDetails, AbsenceListItem, AbsenceStatus, PagedAbsences, SaveAbsenceRequest } from '../../features/hr/types/absence';
-import { hrEmployeeService } from '../../features/hr/services/hrEmployeeService';
-import type { DepartmentOption, EmployeeListItem } from '../../features/hr/types/employee';
-import { getApiErrorMessage } from '../../services/apiClient';
+import { Modal } from '../../components/common/Modal';
+import { PageHeader } from '../../components/common/PageHeader';
+import { Pagination } from '../../components/common/Pagination';
+import { StatusBadge, type StatusTone } from '../../components/common/StatusBadge';
+import { useToast } from '../../components/common/Toast';
+import { DateInput } from '../../components/forms/DateInput';
+import { SelectInput } from '../../components/forms/SelectInput';
+import { TextAreaInput } from '../../components/forms/TextAreaInput';
 import { useLocalization } from '../../context/LocalizationContext';
+import { EmployeeSearchSelect } from '../../features/hr/components/EmployeeSearchSelect';
+import { hrAbsenceService } from '../../features/hr/services/hrAbsenceService';
+import { hrEmployeeService } from '../../features/hr/services/hrEmployeeService';
+import type { AbsenceDetails, AbsenceListItem, AbsenceStatus, PagedAbsences, SaveAbsenceRequest } from '../../features/hr/types/absence';
+import type { DepartmentOption } from '../../features/hr/types/employee';
+import type { TranslationKey } from '../../localization/translations';
+import { getApiErrorMessage } from '../../services/apiClient';
 
 const emptyPage: PagedAbsences = { items: [], totalCount: 0, page: 1, pageSize: 20, totalPages: 0 };
 const emptyForm: SaveAbsenceRequest = { employeeId: '', absenceDate: '', type: 'Absent', reason: '', status: 'Pending', notes: '', attendanceSource: 'Manual' };
-const fieldClass = 'mt-2 h-11 w-full rounded-xl border border-mis-border bg-white px-3 text-sm outline-none focus:border-mis-blue focus:shadow-input';
 const statuses: AbsenceStatus[] = ['Pending', 'Excused', 'Unexcused'];
+const statusLabels: Record<AbsenceStatus, TranslationKey> = { Pending: 'pending', Excused: 'excused', Unexcused: 'unexcused' };
+const statusTones: Record<AbsenceStatus, StatusTone> = { Pending: 'warning', Excused: 'success', Unexcused: 'danger' };
 
-function ModalFrame({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-mis-ink/45 p-4" role="dialog" aria-modal="true"><div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-mis-border bg-white shadow-panel"><header className="flex items-center justify-between border-b border-mis-border px-6 py-5"><div><p className="text-xs font-semibold uppercase tracking-wide text-mis-primary">HR Department</p><h2 className="mt-1 text-xl font-bold text-mis-navy">{title}</h2></div><button aria-label="Close" className="rounded-lg p-2 text-slate-500 hover:bg-slate-50" onClick={onClose}><X className="h-5 w-5" /></button></header>{children}</div></div>;
+function displayDate(value: string, language: 'en' | 'ar'): string {
+  return new Intl.DateTimeFormat(language === 'ar' ? 'ar-EG' : 'en-GB', { dateStyle: 'medium' }).format(new Date(`${value}T12:00:00`));
 }
 
 function AbsenceForm({ absence, onClose, onSaved }: { absence: AbsenceDetails | null; onClose: () => void; onSaved: () => void }) {
   const { t } = useLocalization();
-  const [form, setForm] = useState<SaveAbsenceRequest>(absence ? { employeeId: absence.employeeId, absenceDate: absence.absenceDate, type: 'Absent', reason: absence.reason ?? '', status: absence.status, notes: absence.notes ?? '', attendanceSource: 'Manual' } : emptyForm);
-  const [employees, setEmployees] = useState<EmployeeListItem[]>([]); const [employeeSearch, setEmployeeSearch] = useState(''); const [error, setError] = useState(''); const [saving, setSaving] = useState(false);
-  useEffect(() => { const timer = window.setTimeout(() => { hrEmployeeService.getEmployees({ page: 1, pageSize: 100, search: employeeSearch.trim(), departmentId: '', status: 'all' }).then((result) => setEmployees(result.items)).catch((requestError) => setError(getApiErrorMessage(requestError, 'Unable to load employees.'))); }, 250); return () => window.clearTimeout(timer); }, [employeeSearch]);
-  async function submit(event: React.FormEvent) { event.preventDefault(); setError(''); if (!form.employeeId || !form.absenceDate) { setError(t('employeeDateRequired')); return; } setSaving(true); try { if (absence) await hrAbsenceService.updateAbsence(absence.id, form); else await hrAbsenceService.createAbsence(form); onSaved(); } catch (requestError) { setError(getApiErrorMessage(requestError, t('saveAbsenceError'))); } finally { setSaving(false); } }
-  return <ModalFrame title={absence ? 'Edit Absence' : 'تسجيل غياب'} onClose={onClose}><form className="space-y-5 p-6" onSubmit={submit}>{error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}<label className="block text-sm font-semibold text-slate-700">Search employee<input className={fieldClass} onChange={(event) => setEmployeeSearch(event.target.value)} placeholder="Employee ID or name" value={employeeSearch} /></label><label className="block text-sm font-semibold text-slate-700">Employee<select className={fieldClass} onChange={(event) => setForm({ ...form, employeeId: event.target.value })} value={form.employeeId}><option value="">Select employee</option>{absence && !employees.some((employee) => employee.id === absence.employeeId) && <option value={absence.employeeId}>{absence.employeeNumber} — {absence.employeeName}</option>}{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.employeeNumber} — {employee.fullName}</option>)}</select></label><label className="block text-sm font-semibold text-slate-700">Date<input className={fieldClass} onChange={(event) => setForm({ ...form, absenceDate: event.target.value })} type="date" value={form.absenceDate} /></label><label className="block text-sm font-semibold text-slate-700">Type<input className={`${fieldClass} bg-mis-surface`} readOnly value="Absent" /></label><label className="block text-sm font-semibold text-slate-700">Reason<textarea className="mt-2 min-h-24 w-full resize-y rounded-xl border border-mis-border p-3 text-sm outline-none focus:border-mis-blue" maxLength={500} onChange={(event) => setForm({ ...form, reason: event.target.value })} value={form.reason} /></label><label className="block text-sm font-semibold text-slate-700">Status<select className={fieldClass} onChange={(event) => setForm({ ...form, status: event.target.value as AbsenceStatus })} value={form.status}>{statuses.map((status) => <option key={status}>{status}</option>)}</select></label><label className="block text-sm font-semibold text-slate-700">Notes<textarea className="mt-2 min-h-28 w-full resize-y rounded-xl border border-mis-border p-3 text-sm outline-none focus:border-mis-blue" maxLength={2000} onChange={(event) => setForm({ ...form, notes: event.target.value })} value={form.notes} /></label><label className="block text-sm font-semibold text-slate-700">Attendance Source<input className={`${fieldClass} bg-mis-surface`} readOnly value="Manual" /></label><div className="flex justify-end gap-3 border-t border-mis-border pt-5"><button className="rounded-xl border border-mis-border px-4 py-2.5 text-sm font-semibold text-slate-600" onClick={onClose} type="button">Cancel</button><button className="rounded-xl bg-mis-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-mis-deep disabled:opacity-60" disabled={saving}>{saving ? 'Saving...' : absence ? 'Save Changes' : 'تسجيل غياب'}</button></div></form></ModalFrame>;
+  const toast = useToast();
+  const formId = 'absence-form';
+  const [form, setForm] = useState<SaveAbsenceRequest>(() => absence ? {
+    employeeId: absence.employeeId,
+    absenceDate: absence.absenceDate,
+    type: 'Absent',
+    reason: absence.reason ?? '',
+    status: absence.status,
+    notes: absence.notes ?? '',
+    attendanceSource: 'Manual',
+  } : { ...emptyForm });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+    if (!form.employeeId || !form.absenceDate) {
+      setError(t('employeeDateRequired'));
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (absence) {
+        await hrAbsenceService.updateAbsence(absence.id, form);
+        toast.success(t('absenceUpdatedSuccess'));
+      } else {
+        await hrAbsenceService.createAbsence(form);
+        toast.success(t('absenceCreatedSuccess'));
+      }
+      onSaved();
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, t('saveAbsenceError')));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const initialEmployee = absence ? { id: absence.employeeId, employeeNumber: absence.employeeNumber, fullName: absence.employeeName } : null;
+
+  return (
+    <Modal
+      closeOnBackdrop={!saving}
+      closeOnEscape={!saving}
+      footer={(
+        <>
+          <Button disabled={saving} fullWidth={false} onClick={onClose} type="button" variant="outline">{t('cancel')}</Button>
+          <Button form={formId} fullWidth={false} isLoading={saving} type="submit">{absence ? t('saveChanges') : t('recordAbsence')}</Button>
+        </>
+      )}
+      hideCloseButton={saving}
+      onClose={onClose}
+      open
+      title={t(absence ? 'editAbsence' : 'recordAbsence')}
+    >
+      <form className="space-y-5" id={formId} onSubmit={submit}>
+        <FormError message={error} />
+        <EmployeeSearchSelect
+          includeInactive
+          initialSelection={initialEmployee}
+          label={t('employee')}
+          onChange={(employeeId) => setForm((current) => ({ ...current, employeeId }))}
+          required
+          value={form.employeeId}
+        />
+        <DateInput label={t('date')} onChange={(event) => setForm((current) => ({ ...current, absenceDate: event.target.value }))} required value={form.absenceDate} />
+        <SelectInput label={t('type')} value="Absent" disabled><option value="Absent">{t('absent')}</option></SelectInput>
+        <TextAreaInput label={t('reason')} maxLength={500} onChange={(event) => setForm((current) => ({ ...current, reason: event.target.value }))} rows={3} value={form.reason} />
+        <SelectInput label={t('status')} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as AbsenceStatus }))} value={form.status}>
+          {statuses.map((status) => <option key={status} value={status}>{t(statusLabels[status])}</option>)}
+        </SelectInput>
+        <TextAreaInput label={t('notes')} maxLength={2000} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} rows={4} value={form.notes} />
+        <SelectInput label={t('attendanceSource')} value="Manual" disabled><option value="Manual">{t('manual')}</option></SelectInput>
+      </form>
+    </Modal>
+  );
+}
+
+function DetailField({ label, value, wide = false }: { label: string; value: ReactNode; wide?: boolean }) {
+  return <div className={`rounded-xl bg-mis-surface p-4 ${wide ? 'sm:col-span-2' : ''}`}><dt className="text-xs font-semibold text-slate-500">{label}</dt><dd className="mt-1.5 break-words text-sm font-semibold text-mis-navy" dir="auto">{value}</dd></div>;
 }
 
 function DetailsModal({ absence, onClose }: { absence: AbsenceDetails; onClose: () => void }) {
-  const fields = [['Employee', absence.employeeName], ['Employee ID', absence.employeeNumber], ['Department', absence.departmentName], ['Date', new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${absence.absenceDate}T00:00:00`))], ['Type', absence.type], ['Reason', absence.reason || 'Unknown'], ['Status', absence.status], ['Notes', absence.notes || '—'], ['Attendance Source', absence.attendanceSource]];
-  return <ModalFrame title="Absence Details" onClose={onClose}><dl className="grid gap-5 p-6 sm:grid-cols-2">{fields.map(([label, value]) => <div className={label === 'Notes' ? 'sm:col-span-2' : ''} key={label}><dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</dt><dd className="mt-1.5 text-sm font-semibold text-mis-navy">{value}</dd></div>)}</dl></ModalFrame>;
+  const { language, t } = useLocalization();
+  return (
+    <Modal footer={<Button fullWidth={false} onClick={onClose}>{t('close')}</Button>} onClose={onClose} open title={t('absenceDetails')}>
+      <dl className="grid gap-4 sm:grid-cols-2">
+        <DetailField label={t('employee')} value={absence.employeeName} />
+        <DetailField label={t('employeeId')} value={absence.employeeNumber} />
+        <DetailField label={t('department')} value={absence.departmentName} />
+        <DetailField label={t('date')} value={displayDate(absence.absenceDate, language)} />
+        <DetailField label={t('type')} value={t('absent')} />
+        <DetailField label={t('status')} value={<StatusBadge tone={statusTones[absence.status]}>{t(statusLabels[absence.status])}</StatusBadge>} />
+        <DetailField label={t('reason')} value={absence.reason || t('unknown')} />
+        <DetailField label={t('attendanceSource')} value={t('manual')} />
+        <DetailField label={t('notes')} value={absence.notes || '—'} wide />
+      </dl>
+    </Modal>
+  );
 }
 
-function statusClass(status: AbsenceStatus) { return status === 'Excused' ? 'bg-emerald-50 text-emerald-700' : status === 'Unexcused' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'; }
-
 export function HrAbsencesPage() {
-  const { t } = useLocalization();
-  const [data, setData] = useState(emptyPage); const [departments, setDepartments] = useState<DepartmentOption[]>([]); const [searchInput, setSearchInput] = useState(''); const [search, setSearch] = useState(''); const [departmentId, setDepartmentId] = useState(''); const [date, setDate] = useState(''); const [status, setStatus] = useState('all'); const [page, setPage] = useState(1); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [formOpen, setFormOpen] = useState(false); const [selected, setSelected] = useState<AbsenceDetails | null>(null); const [detailsOpen, setDetailsOpen] = useState(false); const [deleteTarget, setDeleteTarget] = useState<AbsenceListItem | null>(null); const [deleting, setDeleting] = useState(false);
-  useEffect(() => { const timer = window.setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, 350); return () => clearTimeout(timer); }, [searchInput]);
-  useEffect(() => { hrEmployeeService.getDepartments().then(setDepartments).catch(() => setError(t('loadDepartmentsError'))); }, [t]);
-  const load = useCallback(async () => { setLoading(true); setError(''); try { setData(await hrAbsenceService.getAbsences({ page, pageSize: 20, search, departmentId, date, status })); } catch (requestError) { setError(getApiErrorMessage(requestError, t('loadAbsencesError'))); } finally { setLoading(false); } }, [page, search, departmentId, date, status, t]);
+  const { language, t } = useLocalization();
+  const toast = useToast();
+  const [searchParams] = useSearchParams();
+  const [data, setData] = useState(emptyPage);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('employee') ?? '');
+  const [search, setSearch] = useState(() => searchParams.get('employee') ?? '');
+  const [departmentId, setDepartmentId] = useState('');
+  const [date, setDate] = useState('');
+  const [status, setStatus] = useState('all');
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [formRecord, setFormRecord] = useState<AbsenceDetails | null | undefined>(undefined);
+  const [details, setDetails] = useState<AbsenceDetails | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AbsenceListItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    void hrEmployeeService.getDepartments().then(setDepartments).catch(() => setError(t('loadDepartmentsError')));
+  }, [language, t]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      setData(await hrAbsenceService.getAbsences({ page, pageSize: 20, search, departmentId, date, status }));
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, t('loadAbsencesError')));
+    } finally {
+      setLoading(false);
+    }
+  }, [date, departmentId, language, page, search, status, t]);
+
   useEffect(() => { void load(); }, [load]);
-  async function openRecord(item: AbsenceListItem, mode: 'view' | 'edit') { try { const details = await hrAbsenceService.getAbsence(item.id); setSelected(details); if (mode === 'view') setDetailsOpen(true); else setFormOpen(true); } catch (requestError) { setError(getApiErrorMessage(requestError, t('loadAbsenceError'))); } }
-  async function confirmDelete() { if (!deleteTarget) return; setDeleting(true); try { await hrAbsenceService.deleteAbsence(deleteTarget.id); setDeleteTarget(null); void load(); } catch (requestError) { setError(getApiErrorMessage(requestError, t('deleteAbsenceError'))); } finally { setDeleting(false); } }
-  const selectClass = 'h-11 rounded-xl border border-mis-border bg-white px-3 text-sm text-slate-700 outline-none focus:border-mis-blue';
-  return <div className="mx-auto max-w-7xl" dir="auto"><div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-sm font-semibold text-mis-primary">HR Department</p><h1 className="mt-2 text-3xl font-bold text-mis-navy">غيابات الموظفين</h1><p className="mt-2 text-sm text-slate-500">متابعة غياب الموظفين داخل الشركة</p></div><button className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-mis-primary px-5 text-sm font-semibold text-white hover:bg-mis-deep" onClick={() => { setSelected(null); setFormOpen(true); }}><Plus className="h-4 w-4" />تسجيل غياب</button></div><section className="overflow-hidden rounded-2xl border border-mis-border bg-white shadow-sm"><div className="grid gap-3 border-b border-mis-border p-4 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_170px_150px]"><label className="relative"><Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" /><input className="h-11 w-full rounded-xl border border-mis-border pl-10 pr-3 text-sm outline-none focus:border-mis-blue" onChange={(event) => setSearchInput(event.target.value)} placeholder="Search employee..." value={searchInput} /></label><select className={selectClass} onChange={(event) => { setDepartmentId(event.target.value); setPage(1); }} value={departmentId}><option value="">All departments</option>{departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select><input aria-label="Absence date filter" className={selectClass} onChange={(event) => { setDate(event.target.value); setPage(1); }} type="date" value={date} /><select className={selectClass} onChange={(event) => { setStatus(event.target.value); setPage(1); }} value={status}><option value="all">All</option>{statuses.map((item) => <option key={item} value={item.toLowerCase()}>{item}</option>)}</select></div>{error && <div className="m-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}{loading ? <div className="flex min-h-72 items-center justify-center"><LoadingSpinner /></div> : data.items.length === 0 ? <div className="flex min-h-72 items-center justify-center p-8 text-center"><div><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-mis-pale text-mis-primary"><CalendarX2 /></div><h2 className="mt-4 font-bold text-mis-navy">No absences found</h2><p className="mt-2 text-sm text-slate-500">Start by recording an employee absence.</p><button className="mt-5 inline-flex items-center gap-2 rounded-xl bg-mis-primary px-4 py-2.5 text-sm font-semibold text-white" onClick={() => setFormOpen(true)}><Plus className="h-4 w-4" />تسجيل غياب</button></div></div> : <><div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left" dir="ltr"><thead className="bg-mis-surface text-xs uppercase tracking-wide text-slate-500"><tr>{['Employee ID','Employee','Department','Date','Status','Actions'].map((heading) => <th className="px-5 py-4" key={heading}>{heading}</th>)}</tr></thead><tbody className="divide-y divide-mis-border">{data.items.map((item) => <tr className="hover:bg-slate-50/70" key={item.id}><td className="px-5 py-4 text-sm font-semibold text-mis-navy">{item.employeeNumber}</td><td className="px-5 py-4 text-sm text-slate-700">{item.employeeName}</td><td className="px-5 py-4 text-sm text-slate-600">{item.departmentName}</td><td className="px-5 py-4 text-sm text-slate-600">{item.absenceDate}</td><td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(item.status)}`}>{item.status}</span></td><td className="px-5 py-4"><div className="flex gap-1"><button className="rounded-lg p-2 text-mis-primary hover:bg-mis-pale" onClick={() => void openRecord(item, 'view')} title="View"><Eye className="h-4 w-4" /></button><button className="rounded-lg p-2 text-mis-primary hover:bg-mis-pale" onClick={() => void openRecord(item, 'edit')} title="Edit"><Pencil className="h-4 w-4" /></button><button className="rounded-lg p-2 text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(item)} title="Delete"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody></table></div><footer className="flex flex-col items-center justify-between gap-3 border-t border-mis-border px-5 py-4 text-sm text-slate-500 sm:flex-row"><span>Showing {(data.page - 1) * data.pageSize + 1}–{Math.min(data.page * data.pageSize, data.totalCount)} of {data.totalCount}</span><div className="flex items-center gap-2"><button className="rounded-lg border border-mis-border p-2 disabled:opacity-40" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}><ChevronLeft className="h-4 w-4" /></button><span className="font-semibold text-mis-navy">Page {data.page} of {data.totalPages}</span><button className="rounded-lg border border-mis-border p-2 disabled:opacity-40" disabled={page >= data.totalPages} onClick={() => setPage((value) => value + 1)}><ChevronRight className="h-4 w-4" /></button></div></footer></>}</section>{formOpen && <AbsenceForm absence={selected} onClose={() => { setFormOpen(false); setSelected(null); }} onSaved={() => { setFormOpen(false); setSelected(null); void load(); }} />}{detailsOpen && selected && <DetailsModal absence={selected} onClose={() => { setDetailsOpen(false); setSelected(null); }} />}{deleteTarget && <ModalFrame title="Delete Absence" onClose={() => setDeleteTarget(null)}><div className="p-6"><p className="text-sm leading-6 text-slate-600">Are you sure you want to delete the absence record for <strong className="text-mis-navy">{deleteTarget.employeeName}</strong> on {deleteTarget.absenceDate}?</p><div className="mt-6 flex justify-end gap-3"><button className="rounded-xl border border-mis-border px-4 py-2.5 text-sm font-semibold text-slate-600" onClick={() => setDeleteTarget(null)}>Cancel</button><button className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60" disabled={deleting} onClick={() => void confirmDelete()}>{deleting ? 'Deleting...' : 'Delete'}</button></div></div></ModalFrame>}</div>;
+
+  async function openRecord(item: AbsenceListItem, mode: 'view' | 'edit') {
+    try {
+      const record = await hrAbsenceService.getAbsence(item.id);
+      if (mode === 'view') setDetails(record);
+      else setFormRecord(record);
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, t('loadAbsenceError')));
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await hrAbsenceService.deleteAbsence(deleteTarget.id);
+      toast.success(t('absenceDeletedSuccess'));
+      setDeleteTarget(null);
+      await load();
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, t('deleteAbsenceError')));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const hasFilters = Boolean(search || departmentId || date || status !== 'all');
+  const headings = useMemo(() => [t('employeeId'), t('employee'), t('department'), t('date'), t('status'), t('actions')], [t]);
+
+  return (
+    <div className="mx-auto max-w-7xl">
+      <PageHeader
+        actions={<Button fullWidth={false} leftIcon={<Plus className="h-4 w-4" />} onClick={() => setFormRecord(null)}>{t('recordAbsence')}</Button>}
+        description={t('absencesSubtitle')}
+        eyebrow={t('hrDepartment')}
+        title={t('absencesTitle')}
+      />
+      <section className="overflow-hidden rounded-2xl border border-mis-border bg-white shadow-sm">
+        <div className="grid gap-3 border-b border-mis-border p-4 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_170px_150px]">
+          <label className="relative">
+            <Search className="absolute start-3 top-3 h-5 w-5 text-slate-400" aria-hidden="true" />
+            <input className="h-11 w-full rounded-xl border border-mis-border pe-3 ps-10 text-sm outline-none focus:border-mis-blue" onChange={(event) => setSearchInput(event.target.value)} placeholder={t('searchEmployee')} value={searchInput} />
+          </label>
+          <select aria-label={t('department')} className="h-11 rounded-xl border border-mis-border bg-white px-3 text-sm" onChange={(event) => { setDepartmentId(event.target.value); setPage(1); }} value={departmentId}>
+            <option value="">{t('allDepartments')}</option>
+            {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+          </select>
+          <input aria-label={t('absenceDateFilter')} className="h-11 rounded-xl border border-mis-border px-3 text-sm" onChange={(event) => { setDate(event.target.value); setPage(1); }} type="date" value={date} />
+          <select aria-label={t('status')} className="h-11 rounded-xl border border-mis-border bg-white px-3 text-sm" onChange={(event) => { setStatus(event.target.value); setPage(1); }} value={status}>
+            <option value="all">{t('all')}</option>
+            {statuses.map((item) => <option key={item} value={item.toLowerCase()}>{t(statusLabels[item])}</option>)}
+          </select>
+        </div>
+
+        {error ? <div className="p-5"><ErrorState compact message={error} onRetry={() => void load()} title={t('loadAbsencesError')} /></div> : loading ? (
+          <div className="flex min-h-72 items-center justify-center"><LoadingSpinner /></div>
+        ) : data.items.length === 0 ? (
+          <EmptyState
+            action={!hasFilters ? <Button fullWidth={false} leftIcon={<Plus className="h-4 w-4" />} onClick={() => setFormRecord(null)}>{t('recordAbsence')}</Button> : undefined}
+            description={hasFilters ? t('adjustFilters') : t('addFirstAbsence')}
+            icon={<CalendarX2 />}
+            title={t('noAbsencesFound')}
+          />
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[850px] text-start">
+                <thead className="bg-mis-surface text-xs uppercase tracking-wide text-slate-500"><tr>{headings.map((heading) => <th className="px-5 py-4 text-start" key={heading}>{heading}</th>)}</tr></thead>
+                <tbody className="divide-y divide-mis-border">
+                  {data.items.map((item) => (
+                    <tr className="hover:bg-slate-50/70" key={item.id}>
+                      <td className="px-5 py-4 text-sm font-semibold text-mis-navy">{item.employeeNumber}</td>
+                      <td className="px-5 py-4 text-sm text-slate-700">{item.employeeName}</td>
+                      <td className="px-5 py-4 text-sm text-slate-600">{item.departmentName}</td>
+                      <td className="px-5 py-4 text-sm text-slate-600">{displayDate(item.absenceDate, language)}</td>
+                      <td className="px-5 py-4"><StatusBadge tone={statusTones[item.status]}>{t(statusLabels[item.status])}</StatusBadge></td>
+                      <td className="px-5 py-4"><div className="flex justify-end gap-1">
+                        <button aria-label={t('view')} className="rounded-lg p-2 text-mis-primary hover:bg-mis-pale" onClick={() => void openRecord(item, 'view')} type="button"><Eye className="h-4 w-4" /></button>
+                        <button aria-label={t('edit')} className="rounded-lg p-2 text-mis-primary hover:bg-mis-pale" onClick={() => void openRecord(item, 'edit')} type="button"><Pencil className="h-4 w-4" /></button>
+                        <button aria-label={t('delete')} className="rounded-lg p-2 text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(item)} type="button"><Trash2 className="h-4 w-4" /></button>
+                      </div></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination onPageChange={setPage} page={data.page} pageSize={data.pageSize} totalCount={data.totalCount} totalPages={data.totalPages} />
+          </>
+        )}
+      </section>
+
+      {formRecord !== undefined ? <AbsenceForm absence={formRecord} onClose={() => setFormRecord(undefined)} onSaved={() => { setFormRecord(undefined); void load(); }} /> : null}
+      {details ? <DetailsModal absence={details} onClose={() => setDetails(null)} /> : null}
+      {deleteTarget ? (
+        <Modal
+          closeOnBackdrop={!deleting}
+          closeOnEscape={!deleting}
+          footer={(
+            <>
+              <Button disabled={deleting} fullWidth={false} onClick={() => setDeleteTarget(null)} variant="outline">{t('cancel')}</Button>
+              <Button fullWidth={false} isLoading={deleting} onClick={() => void confirmDelete()} variant="danger">{t('delete')}</Button>
+            </>
+          )}
+          hideCloseButton={deleting}
+          onClose={() => setDeleteTarget(null)}
+          open
+          title={t('deleteAbsence')}
+        >
+          <p className="text-sm leading-6 text-slate-600">{t('deleteConfirmation', { name: deleteTarget.employeeName, date: displayDate(deleteTarget.absenceDate, language) })}</p>
+        </Modal>
+      ) : null}
+    </div>
+  );
 }

@@ -6,6 +6,7 @@ namespace MIS.Application.Interfaces;
 public interface IHrEmployeeRepository
 {
     Task<PagedEmployeesDto> GetPagedAsync(int page, int pageSize, string? search, Guid? departmentId, bool? isActive, CancellationToken cancellationToken);
+    Task<PagedEmployeesDto> GetPagedByStatusAsync(int page, int pageSize, string? search, Guid? departmentId, string? status, CancellationToken cancellationToken);
     Task<Employee?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<EmployeeDetailsDto?> GetDetailsByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<IReadOnlyCollection<DepartmentOptionDto>> GetDepartmentsAsync(CancellationToken cancellationToken);

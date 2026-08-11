@@ -36,6 +36,16 @@ body {
 [dir='rtl'] .pl-10 { padding-left: 0.75rem; padding-right: 2.5rem; }
 [dir='rtl'] .pr-3 { padding-left: 0.75rem; }
 
+/* Keep language-neutral identifiers readable inside either writing direction. */
+:where(input[type='date'], input[type='datetime-local'], input[type='email'], input[type='number'], input[type='tel'], input[type='time'], input[type='url']),
+:where(time, code, kbd, [data-bidi='ltr']) {
+  unicode-bidi: isolate;
+}
+
+[dir='rtl'] :where(input[type='date'], input[type='datetime-local'], input[type='email'], input[type='number'], input[type='tel'], input[type='time'], input[type='url'], [data-bidi='ltr']) {
+  direction: ltr;
+}
+
 button,
 input {
   font: inherit;

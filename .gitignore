@@ -12,6 +12,7 @@ frontend/.env.*
 !frontend/.env.example
 frontend/*.log
 backend/*.log
+**/App_Data/
 
 # Environment secrets
 .env

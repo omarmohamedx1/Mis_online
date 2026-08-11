@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using MIS.Application.Common;
@@ -9,6 +11,7 @@ using MIS.Infrastructure;
 using MIS.Infrastructure.Authentication;
 using MIS.API.Authorization;
 using MIS.Domain.Constants;
+using MIS.API.Authentication;
 
 namespace MIS.API.Configuration;
 
@@ -36,6 +39,16 @@ public static class ApiServiceCollectionExtensions
                 };
             });
 
+        var supportedCultures = new[] { new CultureInfo("en"), new CultureInfo("ar") };
+        services.Configure<RequestLocalizationOptions>(options =>
+        {
+            options.DefaultRequestCulture = new RequestCulture("en");
+            options.SupportedCultures = supportedCultures;
+            options.SupportedUICultures = supportedCultures;
+            options.ApplyCurrentCultureToResponseHeaders = true;
+            options.RequestCultureProviders = [new AcceptLanguageHeaderRequestCultureProvider()];
+        });
+
         services.AddCors(options =>
         {
             options.AddPolicy(FrontendCorsPolicy, policy =>
@@ -50,6 +63,8 @@ public static class ApiServiceCollectionExtensions
         });
 
         services.AddScoped<IAuthService, AuthService>();
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserContext, CurrentUserContext>();
         services.AddInfrastructureServices(configuration);
         services.AddJwtAuthentication(configuration);
         services.AddAuthorization(options =>

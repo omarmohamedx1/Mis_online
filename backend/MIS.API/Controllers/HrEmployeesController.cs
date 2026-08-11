@@ -14,7 +14,18 @@ namespace MIS.API.Controllers;
 public sealed class HrEmployeesController : ControllerBase
 {
     private readonly IHrEmployeeRepository _repository;
-    public HrEmployeesController(IHrEmployeeRepository repository) => _repository = repository;
+    private readonly IHrAuditService _audit;
+    private readonly IHrTransactionRunner _transactions;
+
+    public HrEmployeesController(
+        IHrEmployeeRepository repository,
+        IHrAuditService audit,
+        IHrTransactionRunner transactions)
+    {
+        _repository = repository;
+        _audit = audit;
+        _transactions = transactions;
+    }
 
     [HttpGet]
     public async Task<ActionResult<PagedEmployeesDto>> GetEmployees(
@@ -31,17 +42,20 @@ public sealed class HrEmployeesController : ControllerBase
             return BadRequest(ApiErrorResponse.Failure("Search cannot exceed 160 characters."));
 
         var normalizedStatus = status?.Trim().ToLowerInvariant();
-        bool? isActive = normalizedStatus switch
+        var employeeStatus = normalizedStatus switch
         {
             null or "" or "all" => null,
-            "active" => true,
-            "inactive" => false,
+            "active" => Employee.ActiveStatus,
+            "inactive" => Employee.InactiveStatus,
+            "onleave" or "on_leave" or "on leave" => Employee.OnLeaveStatus,
+            "suspended" => Employee.SuspendedStatus,
+            "terminated" => Employee.TerminatedStatus,
             _ => null
         };
-        if (!string.IsNullOrWhiteSpace(normalizedStatus) && normalizedStatus is not ("all" or "active" or "inactive"))
-            return BadRequest(ApiErrorResponse.Failure("Status must be all, active, or inactive."));
+        if (!string.IsNullOrWhiteSpace(normalizedStatus) && normalizedStatus is not ("all" or "active" or "inactive" or "onleave" or "on_leave" or "on leave" or "suspended" or "terminated"))
+            return BadRequest(ApiErrorResponse.Failure("Status must be all, active, inactive, on leave, suspended, or terminated."));
 
-        return Ok(await _repository.GetPagedAsync(page, pageSize, search, departmentId, isActive, cancellationToken));
+        return Ok(await _repository.GetPagedByStatusAsync(page, pageSize, search, departmentId, employeeStatus, cancellationToken));
     }
 
     [HttpGet("{id:guid}")]
@@ -58,9 +72,22 @@ public sealed class HrEmployeesController : ControllerBase
         if (error is not null) return error;
 
         var employee = new Employee(request.EmployeeNumber, request.FullName, request.DepartmentId, request.IsActive, DateTimeOffset.UtcNow);
-        _repository.Add(employee);
-        await _repository.SaveChangesAsync(cancellationToken);
-        var created = await _repository.GetDetailsByIdAsync(employee.Id, cancellationToken);
+        var created = await _transactions.ExecuteAsync(async token =>
+        {
+            _repository.Add(employee);
+            await _repository.SaveChangesAsync(token);
+            var details = await _repository.GetDetailsByIdAsync(employee.Id, token)
+                ?? throw new InvalidOperationException("The created employee could not be reloaded.");
+            await _audit.WriteAsync(new AuditWriteRequest(
+                "EmployeeCreated",
+                nameof(Employee),
+                employee.Id.ToString(),
+                employee.Id,
+                null,
+                details,
+                $"Created employee {request.EmployeeNumber}."), token);
+            return details;
+        }, cancellationToken);
         return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, created);
     }
 
@@ -69,12 +96,27 @@ public sealed class HrEmployeesController : ControllerBase
     {
         var employee = await _repository.GetTrackedByIdAsync(id, cancellationToken);
         if (employee is null) return NotFound(ApiErrorResponse.Failure("Employee was not found."));
+        var oldValue = await _repository.GetDetailsByIdAsync(id, cancellationToken);
         var error = await ValidateRequestAsync(request, id, cancellationToken);
         if (error is not null) return error;
 
         employee.Update(request.EmployeeNumber, request.FullName, request.DepartmentId, request.IsActive, DateTimeOffset.UtcNow);
-        await _repository.SaveChangesAsync(cancellationToken);
-        return Ok(await _repository.GetDetailsByIdAsync(id, cancellationToken));
+        var updated = await _transactions.ExecuteAsync(async token =>
+        {
+            await _repository.SaveChangesAsync(token);
+            var details = await _repository.GetDetailsByIdAsync(id, token)
+                ?? throw new InvalidOperationException("The updated employee could not be reloaded.");
+            await _audit.WriteAsync(new AuditWriteRequest(
+                "EmployeeUpdated",
+                nameof(Employee),
+                id.ToString(),
+                id,
+                oldValue,
+                details,
+                $"Updated employee {request.EmployeeNumber}."), token);
+            return details;
+        }, cancellationToken);
+        return Ok(updated);
     }
 
     private async Task<ActionResult?> ValidateRequestAsync(SaveEmployeeRequest request, Guid? excludingId, CancellationToken cancellationToken)

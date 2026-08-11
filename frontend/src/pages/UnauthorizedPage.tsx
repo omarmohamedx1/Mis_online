@@ -1,12 +1,14 @@
 import { LogOut, ShieldX } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLocalization } from '../context/LocalizationContext';
+import { LanguageSwitcher } from '../components/common/LanguageSwitcher';
 
 export function UnauthorizedPage() {
   const { logout } = useAuth();
   const { t } = useLocalization();
   return (
     <main className="flex min-h-screen items-center justify-center bg-mis-surface p-5">
+      <LanguageSwitcher className="fixed end-5 top-5" />
       <section className="w-full max-w-lg rounded-2xl border border-mis-border bg-white p-8 text-center shadow-panel">
         <ShieldX className="mx-auto h-12 w-12 text-mis-primary" aria-hidden="true" />
         <h1 className="mt-5 text-2xl font-bold text-mis-navy">{t('accessUnavailable')}</h1>

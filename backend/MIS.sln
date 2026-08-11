@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MIS.Domain", "MIS.Domain\MI
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MIS.Infrastructure", "MIS.Infrastructure\MIS.Infrastructure.csproj", "{4CD53C2D-507A-462F-B8AD-432F130FC8FA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MIS.Domain.Tests", "MIS.Domain.Tests\MIS.Domain.Tests.csproj", "{8F064CCE-F549-4E53-8AA2-DF15613AF50E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{4CD53C2D-507A-462F-B8AD-432F130FC8FA}.Release|x64.Build.0 = Release|Any CPU
 		{4CD53C2D-507A-462F-B8AD-432F130FC8FA}.Release|x86.ActiveCfg = Release|Any CPU
 		{4CD53C2D-507A-462F-B8AD-432F130FC8FA}.Release|x86.Build.0 = Release|Any CPU
+		{8F064CCE-F549-4E53-8AA2-DF15613AF50E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F064CCE-F549-4E53-8AA2-DF15613AF50E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F064CCE-F549-4E53-8AA2-DF15613AF50E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8F064CCE-F549-4E53-8AA2-DF15613AF50E}.Debug|x64.Build.0 = Debug|Any CPU
+		{8F064CCE-F549-4E53-8AA2-DF15613AF50E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8F064CCE-F549-4E53-8AA2-DF15613AF50E}.Debug|x86.Build.0 = Debug|Any CPU
+		{8F064CCE-F549-4E53-8AA2-DF15613AF50E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F064CCE-F549-4E53-8AA2-DF15613AF50E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F064CCE-F549-4E53-8AA2-DF15613AF50E}.Release|x64.ActiveCfg = Release|Any CPU
+		{8F064CCE-F549-4E53-8AA2-DF15613AF50E}.Release|x64.Build.0 = Release|Any CPU
+		{8F064CCE-F549-4E53-8AA2-DF15613AF50E}.Release|x86.ActiveCfg = Release|Any CPU
+		{8F064CCE-F549-4E53-8AA2-DF15613AF50E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

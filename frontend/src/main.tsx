@@ -5,11 +5,16 @@ import { AuthProvider } from './context/AuthContext';
 import { AppRoutes } from './routes/AppRoutes';
 import './styles.css';
 import { LocalizationProvider } from './context/LocalizationContext';
+import { ToastProvider } from './components/common/Toast';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <LocalizationProvider><AuthProvider><AppRoutes /></AuthProvider></LocalizationProvider>
+      <LocalizationProvider>
+        <ToastProvider>
+          <AuthProvider><AppRoutes /></AuthProvider>
+        </ToastProvider>
+      </LocalizationProvider>
     </BrowserRouter>
   </React.StrictMode>,
 );

@@ -15,7 +15,18 @@ namespace MIS.API.Controllers;
 public sealed class HrAbsencesController : ControllerBase
 {
     private readonly IHrAbsenceRepository _repository;
-    public HrAbsencesController(IHrAbsenceRepository repository) => _repository = repository;
+    private readonly IHrAuditService _audit;
+    private readonly IHrTransactionRunner _transactions;
+
+    public HrAbsencesController(
+        IHrAbsenceRepository repository,
+        IHrAuditService audit,
+        IHrTransactionRunner transactions)
+    {
+        _repository = repository;
+        _audit = audit;
+        _transactions = transactions;
+    }
 
     [HttpGet]
     public async Task<ActionResult<PagedAbsencesDto>> GetAbsences([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, [FromQuery] Guid? departmentId = null, [FromQuery] DateOnly? date = null, [FromQuery] string? status = null, CancellationToken cancellationToken = default)
@@ -39,8 +50,23 @@ public sealed class HrAbsencesController : ControllerBase
     {
         var validation = await ValidateAsync(request, cancellationToken); if (validation is not null) return validation;
         var absence = new EmployeeAbsence(request.EmployeeId, request.AbsenceDate, request.Reason, NormalizeStatus(request.Status)!, request.Notes, DateTimeOffset.UtcNow);
-        _repository.Add(absence); await _repository.SaveChangesAsync(cancellationToken);
-        return CreatedAtAction(nameof(GetAbsence), new { id = absence.Id }, await _repository.GetDetailsAsync(absence.Id, cancellationToken));
+        var created = await _transactions.ExecuteAsync(async token =>
+        {
+            _repository.Add(absence);
+            await _repository.SaveChangesAsync(token);
+            var details = await _repository.GetDetailsAsync(absence.Id, token)
+                ?? throw new InvalidOperationException("The created absence could not be reloaded.");
+            await _audit.WriteAsync(new AuditWriteRequest(
+                "AbsenceCreated",
+                nameof(EmployeeAbsence),
+                absence.Id.ToString(),
+                request.EmployeeId,
+                null,
+                details,
+                "Recorded employee absence."), token);
+            return details;
+        }, cancellationToken);
+        return CreatedAtAction(nameof(GetAbsence), new { id = absence.Id }, created);
     }
 
     [HttpPut("{id:guid}")]
@@ -48,10 +74,25 @@ public sealed class HrAbsencesController : ControllerBase
     {
         var absence = await _repository.GetTrackedAsync(id, cancellationToken);
         if (absence is null) return NotFound(ApiErrorResponse.Failure("Absence record was not found."));
+        var oldValue = await _repository.GetDetailsAsync(id, cancellationToken);
         var validation = await ValidateAsync(request, cancellationToken); if (validation is not null) return validation;
         absence.Update(request.EmployeeId, request.AbsenceDate, request.Reason, NormalizeStatus(request.Status)!, request.Notes, DateTimeOffset.UtcNow);
-        await _repository.SaveChangesAsync(cancellationToken);
-        return Ok(await _repository.GetDetailsAsync(id, cancellationToken));
+        var updated = await _transactions.ExecuteAsync(async token =>
+        {
+            await _repository.SaveChangesAsync(token);
+            var details = await _repository.GetDetailsAsync(id, token)
+                ?? throw new InvalidOperationException("The updated absence could not be reloaded.");
+            await _audit.WriteAsync(new AuditWriteRequest(
+                "AbsenceUpdated",
+                nameof(EmployeeAbsence),
+                id.ToString(),
+                request.EmployeeId,
+                oldValue,
+                details,
+                "Updated employee absence."), token);
+            return details;
+        }, cancellationToken);
+        return Ok(updated);
     }
 
     [HttpDelete("{id:guid}")]
@@ -59,7 +100,20 @@ public sealed class HrAbsencesController : ControllerBase
     {
         var absence = await _repository.GetTrackedAsync(id, cancellationToken);
         if (absence is null) return NotFound(ApiErrorResponse.Failure("Absence record was not found."));
-        _repository.Remove(absence); await _repository.SaveChangesAsync(cancellationToken);
+        var oldValue = await _repository.GetDetailsAsync(id, cancellationToken);
+        await _transactions.ExecuteAsync(async token =>
+        {
+            _repository.Remove(absence);
+            await _repository.SaveChangesAsync(token);
+            await _audit.WriteAsync(new AuditWriteRequest(
+                "AbsenceDeleted",
+                nameof(EmployeeAbsence),
+                id.ToString(),
+                absence.EmployeeId,
+                oldValue,
+                null,
+                "Deleted employee absence."), token);
+        }, cancellationToken);
         return NoContent();
     }
 

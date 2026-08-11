@@ -4,6 +4,9 @@ public sealed record ApiErrorResponse(bool Success, string Message, IReadOnlyCol
 {
     public static ApiErrorResponse Failure(string message, IEnumerable<string>? errors = null)
     {
-        return new ApiErrorResponse(false, message, errors?.ToArray() ?? []);
+        return new ApiErrorResponse(
+            false,
+            ApiTextLocalizer.Localize(message, useGenericArabicFallback: true),
+            ApiTextLocalizer.LocalizeErrors(errors));
     }
 }

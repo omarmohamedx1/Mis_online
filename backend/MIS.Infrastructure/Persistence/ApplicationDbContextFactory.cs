@@ -9,8 +9,14 @@ public sealed class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Ap
     {
         var connectionString =
             Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
-            ?? Environment.GetEnvironmentVariable("MIS_DB_CONNECTION")
-            ?? "Host=localhost;Port=5432;Database=mis_dev;Username=postgres";
+            ?? Environment.GetEnvironmentVariable("MIS_DB_CONNECTION");
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                "Set ConnectionStrings__DefaultConnection or MIS_DB_CONNECTION explicitly before running EF Core design-time commands. " +
+                "The factory intentionally has no fallback database to prevent migrations from targeting the wrong PostgreSQL database.");
+        }
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         optionsBuilder.UseNpgsql(connectionString);

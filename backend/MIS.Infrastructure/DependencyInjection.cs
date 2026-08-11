@@ -6,6 +6,8 @@ using MIS.Application.Interfaces;
 using MIS.Infrastructure.Authentication;
 using MIS.Infrastructure.Persistence;
 using MIS.Infrastructure.Persistence.Repositories;
+using MIS.Infrastructure.Services;
+using MIS.Infrastructure.Files;
 
 namespace MIS.Infrastructure;
 
@@ -24,12 +26,27 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString));
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<HrFileStorageOptions>(configuration.GetSection(HrFileStorageOptions.SectionName));
         ValidateJwtOptions(configuration);
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IHrDashboardRepository, HrDashboardRepository>();
         services.AddScoped<IHrEmployeeRepository, HrEmployeeRepository>();
         services.AddScoped<IHrAbsenceRepository, HrAbsenceRepository>();
+        services.AddScoped<IHrTransactionRunner, EfHrTransactionRunner>();
+        services.AddScoped<IHrAuditService, HrAuditService>();
+        services.AddScoped<IHrMasterDataService, HrMasterDataService>();
+        services.AddScoped<IHrEmployeeProfileService, HrEmployeeProfileService>();
+        services.AddScoped<IHrEmployeeDocumentService, HrEmployeeDocumentService>();
+        services.AddScoped<IHrDelegationService, HrDelegationService>();
+        services.AddScoped<IHrLeaveService, HrLeaveService>();
+        services.AddScoped<IHrReportService, HrReportService>();
+        services.AddScoped<IHrAttendanceService, HrAttendanceService>();
+        services.AddScoped<IHrAttendanceImportService, HrAttendanceImportService>();
+        services.AddScoped<HrCalendarService>();
+        services.AddScoped<IHrCalendarService>(serviceProvider => serviceProvider.GetRequiredService<HrCalendarService>());
+        services.AddScoped<IWorkingCalendarCalculator>(serviceProvider => serviceProvider.GetRequiredService<HrCalendarService>());
+        services.AddSingleton<IHrFileStorage, LocalHrFileStorage>();
         services.AddScoped<IPasswordHashService, PasswordHashService>();
         services.AddSingleton<ITokenService, JwtTokenService>();
 

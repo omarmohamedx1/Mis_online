@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import misLogo from '../../assets/mis-logo.svg';
 import { useLocalization } from '../../context/LocalizationContext';
+import { LanguageSwitcher } from '../common/LanguageSwitcher';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -10,6 +11,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   const { t } = useLocalization();
   return (
     <main className="min-h-screen overflow-hidden bg-mis-surface text-mis-ink md:grid md:grid-cols-[0.78fr_1fr] lg:grid-cols-[1.12fr_0.88fr]">
+      <LanguageSwitcher className="fixed end-5 top-5 z-30" />
       <section className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-white px-10 py-10 md:flex xl:px-16">
         <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(231,243,250,0.96),rgba(255,255,255,0.9)_42%,rgba(216,227,236,0.78))]" />
         <div className="absolute inset-y-0 right-0 w-px bg-mis-border" />
@@ -21,7 +23,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         </svg>
 
         <div className="relative z-10">
-          <img src={misLogo} alt="MIS Collection Firm" className="h-28 w-auto" />
+          <img src={misLogo} alt={t('companyLogoAlt')} className="h-28 w-auto" />
           <div className="mt-10 max-w-md">
             <p className="text-sm font-semibold uppercase text-mis-primary">{t('collectionFirm')}</p>
             <h1 className="mt-4 text-4xl font-bold text-mis-navy">MIS</h1>
