@@ -40,6 +40,25 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<LeaveRequest> LeaveRequests => Set<LeaveRequest>();
     public DbSet<EmployeeLeaveEntitlement> EmployeeLeaveEntitlements => Set<EmployeeLeaveEntitlement>();
     public DbSet<EmployeeDelegation> EmployeeDelegations => Set<EmployeeDelegation>();
+    public DbSet<ClientOrganization> CollectionClientOrganizations => Set<ClientOrganization>();
+    public DbSet<CollectionPortfolio> CollectionPortfolios => Set<CollectionPortfolio>();
+    public DbSet<CollectionCustomer> CollectionCustomers => Set<CollectionCustomer>();
+    public DbSet<DelinquencyBucketDefinition> CollectionBucketDefinitions => Set<DelinquencyBucketDefinition>();
+    public DbSet<CollectionTeam> CollectionTeams => Set<CollectionTeam>();
+    public DbSet<CollectionTeamMember> CollectionTeamMembers => Set<CollectionTeamMember>();
+    public DbSet<CollectionUserAccess> CollectionUserAccess => Set<CollectionUserAccess>();
+    public DbSet<CollectionCase> CollectionCases => Set<CollectionCase>();
+    public DbSet<CaseBucketHistory> CollectionCaseBucketHistory => Set<CaseBucketHistory>();
+    public DbSet<CollectionAssignmentHistory> CollectionAssignmentHistory => Set<CollectionAssignmentHistory>();
+    public DbSet<CollectionActivity> CollectionActivities => Set<CollectionActivity>();
+    public DbSet<PromiseToPay> CollectionPromisesToPay => Set<PromiseToPay>();
+    public DbSet<CollectionPayment> CollectionPayments => Set<CollectionPayment>();
+    public DbSet<FieldVisit> CollectionFieldVisits => Set<FieldVisit>();
+    public DbSet<CollectionComplaint> CollectionComplaints => Set<CollectionComplaint>();
+    public DbSet<CollectionAuditLog> CollectionAuditLogs => Set<CollectionAuditLog>();
+    public DbSet<CollectionImportBatch> CollectionImportBatches => Set<CollectionImportBatch>();
+    public DbSet<CollectionImportRow> CollectionImportRows => Set<CollectionImportRow>();
+    public DbSet<CollectionAttachment> CollectionAttachments => Set<CollectionAttachment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

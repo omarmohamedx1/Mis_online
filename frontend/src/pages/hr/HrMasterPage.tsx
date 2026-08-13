@@ -175,7 +175,7 @@ function MasterDataForm({ category, departments, item, onClose, onSaved }: Maste
 export function HrMasterPage() {
   const { language, t } = useLocalization();
   const toast = useToast();
-  const [categories, setCategories] = useState<MasterDataCategory[]>([...masterDataCategories]);
+  const [categories, setCategories] = useState<MasterDataCategory[]>(masterDataCategories.filter((item) => item !== 'branches'));
   const [category, setCategory] = useState<MasterDataCategory>('departments');
   const [data, setData] = useState<PagedMasterData>(emptyPage);
   const [departments, setDepartments] = useState<MasterDataLookup[]>([]);
@@ -192,7 +192,8 @@ export function HrMasterPage() {
 
   useEffect(() => {
     hrMasterDataService.getCategories().then((result) => {
-      if (result.length) setCategories(result);
+      const visibleCategories = result.filter((item) => item !== 'branches');
+      if (visibleCategories.length) setCategories(visibleCategories);
     }).catch(() => undefined);
     hrMasterDataService.getLookup('departments', true).then(setDepartments).catch(() => undefined);
   }, []);

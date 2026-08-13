@@ -55,6 +55,7 @@ public sealed class HrEmployeeProfilesController : ControllerBase
         => Ok(await _service.UpdateContractAsync(employeeId, request, cancellationToken));
 
     [HttpPut("compensation")]
+    [Authorize(Policy = AuthorizationPolicies.HrSensitiveData)]
     public async Task<ActionResult<EmployeeProfileDto>> UpdateCompensation(
         Guid employeeId,
         UpdateEmployeeCompensationRequest request,

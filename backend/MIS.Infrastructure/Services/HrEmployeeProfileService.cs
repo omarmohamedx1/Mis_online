@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MIS.Application.Common;
 using MIS.Application.DTOs.Hr;
 using MIS.Application.Interfaces;
+using MIS.Domain.Constants;
 using MIS.Domain.Entities;
 using MIS.Infrastructure.Persistence;
 
@@ -22,11 +23,13 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
 
     private readonly ApplicationDbContext _dbContext;
     private readonly IHrAuditService _audit;
+    private readonly ICurrentUserContext _currentUser;
 
-    public HrEmployeeProfileService(ApplicationDbContext dbContext, IHrAuditService audit)
+    public HrEmployeeProfileService(ApplicationDbContext dbContext, IHrAuditService audit, ICurrentUserContext currentUser)
     {
         _dbContext = dbContext;
         _audit = audit;
+        _currentUser = currentUser;
     }
 
     public async Task<EmployeeProfileDto> GetProfileAsync(Guid employeeId, CancellationToken cancellationToken)
@@ -50,11 +53,14 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
             .ThenByDescending(item => item.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
 
-        var compensation = await _dbContext.EmployeeCompensations
-            .AsNoTracking()
-            .Where(item => item.EmployeeId == employeeId && item.IsCurrent)
-            .OrderByDescending(item => item.EffectiveFrom)
-            .FirstOrDefaultAsync(cancellationToken);
+        var canManageCompensation = _currentUser.Roles.Contains(SystemRoleNames.HrManager, StringComparer.OrdinalIgnoreCase);
+        var compensation = canManageCompensation
+            ? await _dbContext.EmployeeCompensations
+                .AsNoTracking()
+                .Where(item => item.EmployeeId == employeeId && item.IsCurrent)
+                .OrderByDescending(item => item.EffectiveFrom)
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
 
         var emergencyContact = await _dbContext.EmployeeEmergencyContacts
             .AsNoTracking()
@@ -74,7 +80,7 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
         var delegationCount = await _dbContext.EmployeeDelegations.AsNoTracking()
             .CountAsync(item => item.EmployeeId == employeeId, cancellationToken);
 
-        return Map(employee, contract, compensation, emergencyContact, documentCount, attendanceCount, leaveCount, absenceCount, delegationCount);
+        return Map(employee, contract, compensation, emergencyContact, canManageCompensation, documentCount, attendanceCount, leaveCount, absenceCount, delegationCount);
     }
 
     public async Task<EmployeeReportingLineDto> GetReportingLineAsync(Guid employeeId, CancellationToken cancellationToken)
@@ -114,7 +120,10 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
             throw new HrValidationException("Date of birth must be a valid past date.");
         }
 
-        var normalizedNationalId = Normalize(request.NationalId);
+        var normalizedNationalId = EgyptianHrDataValidator.NormalizeNationalId(
+            request.NationalId,
+            request.DateOfBirth,
+            request.Gender);
         if (normalizedNationalId is not null && await _dbContext.Employees.AnyAsync(
                 item => item.Id != employeeId && item.NationalId == normalizedNationalId,
                 cancellationToken))
@@ -168,8 +177,8 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
         };
 
         employee.UpdateContactInformation(
-            request.MobileNumber,
-            request.AlternativeMobileNumber,
+            EgyptianHrDataValidator.NormalizePhone(request.MobileNumber, "Mobile number"),
+            EgyptianHrDataValidator.NormalizePhone(request.AlternativeMobileNumber, "Alternative mobile number"),
             request.Email,
             request.Address,
             request.City,
@@ -188,6 +197,13 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
         CancellationToken cancellationToken)
     {
         var employee = await GetTrackedEmployeeAsync(employeeId, cancellationToken);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (request.HireDate > today)
+            throw new HrValidationException("Hire date cannot be in the future.");
+        if (request.HireDate.HasValue && employee.DateOfBirth.HasValue && request.HireDate <= employee.DateOfBirth)
+            throw new HrValidationException("Hire date must be after the employee date of birth.");
+        if (request.HireDate.HasValue && employee.TerminationDate.HasValue && request.HireDate > employee.TerminationDate)
+            throw new HrValidationException("Hire date cannot be after the employee termination date.");
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
         await ValidateEmploymentLookupsAsync(employeeId, request, cancellationToken);
         var oldValue = await GetEmploymentAuditSnapshotAsync(employeeId, cancellationToken);
@@ -213,7 +229,7 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
         UpdateEmployeeContractRequest request,
         CancellationToken cancellationToken)
     {
-        _ = await GetTrackedEmployeeAsync(employeeId, cancellationToken);
+        var employee = await GetTrackedEmployeeAsync(employeeId, cancellationToken);
         if (!request.ContractTypeId.HasValue || request.ContractTypeId == Guid.Empty || !request.StartDate.HasValue)
         {
             throw new HrValidationException("Contract type and start date are required.");
@@ -228,6 +244,10 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
 
         ValidateDateRange(request.StartDate, request.EndDate, "Contract end date cannot be before its start date.");
         ValidateDateRange(request.ProbationStartDate, request.ProbationEndDate, "Probation end date cannot be before its start date.");
+        if (employee.HireDate.HasValue && request.StartDate!.Value < employee.HireDate.Value)
+            throw new HrValidationException("Contract start date cannot be before the employee hire date.");
+        if (employee.TerminationDate.HasValue && request.StartDate!.Value > employee.TerminationDate.Value)
+            throw new HrValidationException("Contract start date cannot be after the employee termination date.");
         if (!EmployeeContract.IsValidStatus(request.Status))
         {
             throw new HrValidationException("Contract status must be Draft, Active, Expired, or Terminated.");
@@ -301,6 +321,8 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
         UpdateEmployeeCompensationRequest request,
         CancellationToken cancellationToken)
     {
+        if (!_currentUser.Roles.Contains(SystemRoleNames.HrManager, StringComparer.OrdinalIgnoreCase))
+            throw new HrForbiddenException("Only an HR manager can access employee compensation and banking information.");
         _ = await GetTrackedEmployeeAsync(employeeId, cancellationToken);
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var previousCompensation = await _dbContext.EmployeeCompensations
@@ -308,33 +330,87 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
             .OrderByDescending(item => item.EffectiveFrom)
             .FirstOrDefaultAsync(cancellationToken);
         var oldValue = previousCompensation is null ? null : CompensationAuditMetadata(previousCompensation);
+        var previousSnapshot = previousCompensation is null ? null : new CompensationSnapshot(
+            previousCompensation.BasicSalary,
+            previousCompensation.Allowances,
+            previousCompensation.BankName,
+            previousCompensation.BankAccountNumber,
+            previousCompensation.Iban,
+            previousCompensation.Notes);
         var now = DateTimeOffset.UtcNow;
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (request.EffectiveFrom == default || request.EffectiveFrom > today)
+            throw new HrValidationException("Compensation effective date is required and cannot be in the future.");
+        var employee = await _dbContext.Employees.AsNoTracking()
+            .Where(item => item.Id == employeeId)
+            .Select(item => new { item.HireDate, item.TerminationDate })
+            .SingleAsync(cancellationToken);
+        if (employee.HireDate.HasValue && request.EffectiveFrom < employee.HireDate.Value)
+            throw new HrValidationException("Compensation effective date cannot be before the employee hire date.");
+        if (employee.TerminationDate.HasValue && request.EffectiveFrom > employee.TerminationDate.Value)
+            throw new HrValidationException("Compensation effective date cannot be after the employee termination date.");
+
+        EmployeeCompensation compensation;
+        var changeKind = previousCompensation is null ? "Created" : "Replaced";
+        var normalizedIban = EgyptianHrDataValidator.NormalizeIban(request.Iban);
 
         if (previousCompensation is not null)
         {
-            if (previousCompensation.EffectiveFrom > today)
-                throw new HrConflictException("The current compensation is future-dated and must be corrected before adding a new version.");
-            var effectiveTo = previousCompensation.EffectiveFrom < today ? today.AddDays(-1) : today;
-            previousCompensation.Close(effectiveTo, now);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            if (previousCompensation.EffectiveFrom > request.EffectiveFrom)
+                throw new HrConflictException("Compensation effective date cannot be before the current compensation version.");
+            if (previousCompensation.EffectiveFrom == request.EffectiveFrom)
+            {
+                previousCompensation.Update(
+                    request.BasicSalary,
+                    request.Allowances,
+                    request.EffectiveFrom,
+                    null,
+                    true,
+                    request.BankName,
+                    request.BankAccount,
+                    normalizedIban,
+                    request.Notes,
+                    now);
+                compensation = previousCompensation;
+                changeKind = "Corrected";
+            }
+            else
+            {
+                previousCompensation.Close(request.EffectiveFrom.AddDays(-1), now);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                compensation = new EmployeeCompensation(
+                    employeeId,
+                    request.BasicSalary,
+                    request.Allowances,
+                    request.EffectiveFrom,
+                    null,
+                    true,
+                    request.BankName,
+                    request.BankAccount,
+                    normalizedIban,
+                    request.Notes,
+                    now);
+                _dbContext.EmployeeCompensations.Add(compensation);
+            }
         }
-
-        var compensation = new EmployeeCompensation(
-            employeeId,
-            request.BasicSalary,
-            request.Allowances,
-            today,
-            null,
-            true,
-            request.BankName,
-            request.BankAccount,
-            request.Iban,
-            request.Notes,
-            now);
-        _dbContext.EmployeeCompensations.Add(compensation);
+        else
+        {
+            compensation = new EmployeeCompensation(
+                employeeId,
+                request.BasicSalary,
+                request.Allowances,
+                request.EffectiveFrom,
+                null,
+                true,
+                request.BankName,
+                request.BankAccount,
+                normalizedIban,
+                request.Notes,
+                now);
+            _dbContext.EmployeeCompensations.Add(compensation);
+        }
         await _dbContext.SaveChangesAsync(cancellationToken);
-        var changedFields = GetCompensationChangedFields(previousCompensation, compensation);
+        var changedFields = GetCompensationChangedFields(previousSnapshot, compensation);
         await _audit.WriteAsync(new AuditWriteRequest(
             "EmployeeCompensationUpdated",
             nameof(EmployeeCompensation),
@@ -347,12 +423,15 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
                 compensation.EffectiveFrom,
                 compensation.EffectiveTo,
                 compensation.IsCurrent,
-                ChangeKind = previousCompensation is null ? "Created" : "Replaced",
+                ChangeKind = changeKind,
                 ChangedFields = changedFields
             },
-            previousCompensation is null
-                ? "Created restricted employee compensation information. The audit contains metadata only."
-                : "Replaced restricted employee compensation information while preserving history. The audit contains metadata only."), cancellationToken);
+            changeKind switch
+            {
+                "Created" => "Created restricted employee compensation information. The audit contains metadata only.",
+                "Corrected" => "Corrected the current restricted employee compensation version. The audit contains metadata only.",
+                _ => "Replaced restricted employee compensation information while preserving history. The audit contains metadata only."
+            }), cancellationToken);
         var profile = await GetProfileAsync(employeeId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return profile;
@@ -384,8 +463,8 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
                 employeeId,
                 request.ContactName,
                 request.Relationship,
-                request.MobileNumber,
-                request.AlternativeNumber,
+                EgyptianHrDataValidator.NormalizePhone(request.MobileNumber, "Emergency mobile number", required: true)!,
+                EgyptianHrDataValidator.NormalizePhone(request.AlternativeNumber, "Emergency alternative number"),
                 request.Notes,
                 true,
                 now);
@@ -396,8 +475,8 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
             contact.Update(
                 request.ContactName,
                 request.Relationship,
-                request.MobileNumber,
-                request.AlternativeNumber,
+                EgyptianHrDataValidator.NormalizePhone(request.MobileNumber, "Emergency mobile number", required: true)!,
+                EgyptianHrDataValidator.NormalizePhone(request.AlternativeNumber, "Emergency alternative number"),
                 request.Notes,
                 true,
                 now);
@@ -430,7 +509,9 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
         }
         if (status == Employee.TerminatedStatus)
         {
-            var terminationDate = request.TerminationDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+            if (!request.TerminationDate.HasValue || string.IsNullOrWhiteSpace(request.Reason))
+                throw new HrValidationException("Termination date and reason are required.");
+            var terminationDate = request.TerminationDate.Value;
             if (terminationDate > DateOnly.FromDateTime(DateTime.UtcNow) || employee.HireDate > terminationDate)
                 throw new HrValidationException("Termination date cannot be in the future or before the employee hire date.");
         }
@@ -440,7 +521,7 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
         employee.ChangeStatus(
             status,
             isActive,
-            status == Employee.TerminatedStatus ? request.TerminationDate ?? DateOnly.FromDateTime(DateTime.UtcNow) : null,
+            status == Employee.TerminatedStatus ? request.TerminationDate!.Value : null,
             status == Employee.TerminatedStatus ? request.Reason : null,
             DateTimeOffset.UtcNow);
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -544,7 +625,7 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
     };
 
     private static string[] GetCompensationChangedFields(
-        EmployeeCompensation? previous,
+        CompensationSnapshot? previous,
         EmployeeCompensation current)
     {
         var changedFields = new List<string>();
@@ -577,6 +658,7 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
         EmployeeContract? contract,
         EmployeeCompensation? compensation,
         EmployeeEmergencyContact? emergencyContact,
+        bool canManageCompensation,
         int documentCount,
         int attendanceCount,
         int leaveCount,
@@ -591,6 +673,7 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
         employee.Status,
         employee.IsActive,
         !string.IsNullOrWhiteSpace(employee.ProfilePhotoStorageKey),
+        canManageCompensation,
         new EmployeePersonalInformationDto(
             employee.FullNameArabic,
             employee.FullNameEnglish,
@@ -617,6 +700,7 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
             employee.DirectManagerId,
             employee.DirectManager is null ? null : GetDisplayName(employee.DirectManager),
             employee.HireDate,
+            employee.TerminationDate,
             employee.Status),
         contract is null ? null : new EmployeeContractInformationDto(
             contract.Id,
@@ -634,6 +718,7 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
             compensation.BasicSalary,
             compensation.Allowances,
             compensation.TotalSalary,
+            compensation.EffectiveFrom,
             compensation.BankName,
             compensation.BankAccountNumber,
             compensation.Iban,
@@ -676,4 +761,12 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
         Guid? DirectManagerId,
         string? DirectManager,
         DateOnly? HireDate);
+
+    private sealed record CompensationSnapshot(
+        decimal BasicSalary,
+        decimal Allowances,
+        string? BankName,
+        string? BankAccountNumber,
+        string? Iban,
+        string? Notes);
 }

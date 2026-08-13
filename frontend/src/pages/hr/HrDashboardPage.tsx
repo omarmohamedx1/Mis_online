@@ -2,7 +2,6 @@ import {
   Activity,
   AlertTriangle,
   BriefcaseBusiness,
-  Building2,
   CalendarCheck2,
   CalendarClock,
   CalendarDays,
@@ -36,7 +35,7 @@ import { getApiErrorMessage } from '../../services/apiClient';
 const dashboardCopy = {
   en: {
     inactiveEmployees: 'Inactive Employees', todayAttendance: "Today's Attendance", present: 'Present', absent: 'Absent', late: 'Late', onLeave: 'On Leave', missingCheckOut: 'Missing Check-Out',
-    byDepartment: 'Employees by Department', byBranch: 'Employees by Branch', alerts: 'HR Alerts', noAlerts: 'No current alerts', noAlertsHelp: 'Expiring contracts, documents, probation dates, and birthdays will appear here.',
+    byDepartment: 'Employees by Department', alerts: 'HR Alerts', noAlerts: 'No current alerts', noAlertsHelp: 'Expiring contracts, documents, probation dates, and birthdays will appear here.',
     attendanceTrend: 'Attendance Trend', absenceTrend: 'Absence Trend', lastThirtyDays: 'Last 30 days from processed attendance records', noTrend: 'No processed data for this period',
     activity: 'Recent HR Activity', noActivity: 'No recent HR activity', noActivityHelp: 'Important HR changes will appear after they are recorded.',
     daysRemaining: '{days} days remaining', overdue: '{days} days overdue', dueToday: 'Due today', reports: 'Open Reports', importAttendance: 'Import Attendance', refreshed: 'Live data from the HR API',
@@ -44,7 +43,7 @@ const dashboardCopy = {
   },
   ar: {
     inactiveEmployees: 'الموظفون غير النشطين', todayAttendance: 'حضور اليوم', present: 'حاضر', absent: 'غائب', late: 'متأخر', onLeave: 'في إجازة', missingCheckOut: 'بدون تسجيل خروج',
-    byDepartment: 'الموظفون حسب القسم', byBranch: 'الموظفون حسب الفرع', alerts: 'تنبيهات الموارد البشرية', noAlerts: 'لا توجد تنبيهات حالية', noAlertsHelp: 'ستظهر هنا العقود والمستندات وفترات الاختبار القريبة من الانتهاء وأعياد الميلاد.',
+    byDepartment: 'الموظفون حسب القسم', alerts: 'تنبيهات الموارد البشرية', noAlerts: 'لا توجد تنبيهات حالية', noAlertsHelp: 'ستظهر هنا العقود والمستندات وفترات الاختبار القريبة من الانتهاء وأعياد الميلاد.',
     attendanceTrend: 'اتجاه الحضور', absenceTrend: 'اتجاه الغياب', lastThirtyDays: 'آخر 30 يومًا من سجلات الحضور المعالجة', noTrend: 'لا توجد بيانات معالجة لهذه الفترة',
     activity: 'أحدث نشاطات الموارد البشرية', noActivity: 'لا يوجد نشاط حديث', noActivityHelp: 'ستظهر التغييرات المهمة بعد تسجيلها في النظام.',
     daysRemaining: 'متبقي {days} يوم', overdue: 'متأخر {days} يوم', dueToday: 'موعده اليوم', reports: 'فتح التقارير', importAttendance: 'استيراد الحضور', refreshed: 'بيانات مباشرة من واجهة الموارد البشرية',
@@ -65,7 +64,7 @@ function MetricCard({ context, icon, label, value }: { context: string; icon: Re
   );
 }
 
-function DistributionBars({ emptyText, items }: { emptyText: string; items: Array<DepartmentEmployeeCount | { branchId: string | null; branchName: string; employeeCount: number }>; }) {
+function DistributionBars({ emptyText, items }: { emptyText: string; items: DepartmentEmployeeCount[]; }) {
   const populated = items.filter((item) => item.employeeCount > 0);
   const maximum = Math.max(...populated.map((item) => item.employeeCount), 1);
   if (!populated.length) return <EmptyState compact description={emptyText} title={emptyText} />;
@@ -73,11 +72,9 @@ function DistributionBars({ emptyText, items }: { emptyText: string; items: Arra
   return (
     <div className="space-y-4">
       {populated.map((item) => {
-        const id = 'departmentId' in item ? item.departmentId : item.branchId ?? item.branchName;
-        const name = 'departmentName' in item ? item.departmentName : item.branchName;
         return (
-          <div key={id}>
-            <div className="mb-2 flex items-center justify-between gap-4 text-sm"><span className="truncate font-semibold text-slate-700">{name}</span><span className="font-bold tabular-nums text-mis-navy">{item.employeeCount}</span></div>
+          <div key={item.departmentId}>
+            <div className="mb-2 flex items-center justify-between gap-4 text-sm"><span className="truncate font-semibold text-slate-700">{item.departmentName}</span><span className="font-bold tabular-nums text-mis-navy">{item.employeeCount}</span></div>
             <div className="h-2 overflow-hidden rounded-full bg-mis-pale"><div className="h-full rounded-full bg-mis-primary transition-all" style={{ width: `${Math.max((item.employeeCount / maximum) * 100, 3)}%` }} /></div>
           </div>
         );
@@ -179,10 +176,7 @@ export function HrDashboardPage() {
         </div>
       </Section>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <Section title={copy.byDepartment}><DistributionBars emptyText={t('employeeDataHelp')} items={summary.employeesByDepartment} /></Section>
-        <Section title={copy.byBranch}><DistributionBars emptyText={t('employeeDataHelp')} items={summary.employeesByBranch} /></Section>
-      </div>
+      <Section className="mt-6" title={copy.byDepartment}><DistributionBars emptyText={t('employeeDataHelp')} items={summary.employeesByDepartment} /></Section>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.55fr)]">
         <Section description={copy.lastThirtyDays} title={copy.attendanceTrend}><AttendanceTrend copy={copy} locale={locale} points={summary.attendanceTrend} /></Section>
@@ -204,7 +198,7 @@ export function HrDashboardPage() {
 
       <Card className="mt-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center" padding="md">
         <div><p className="font-bold text-mis-navy">{copy.todayAttendance}</p><p className="mt-1 text-sm text-slate-500">{copy.lastThirtyDays}</p></div>
-        <div className="flex flex-wrap gap-2"><Link className="inline-flex h-10 items-center gap-2 rounded-xl border border-mis-border px-4 text-sm font-semibold text-mis-navy hover:bg-mis-pale" to="/hr/attendance/import"><CalendarClock className="h-4 w-4" />{copy.importAttendance}</Link><Link className="inline-flex h-10 items-center gap-2 rounded-xl bg-mis-primary px-4 text-sm font-semibold text-white hover:bg-mis-deep" to="/hr/reports"><Building2 className="h-4 w-4" />{copy.reports}</Link></div>
+        <div className="flex flex-wrap gap-2"><Link className="inline-flex h-10 items-center gap-2 rounded-xl border border-mis-border px-4 text-sm font-semibold text-mis-navy hover:bg-mis-pale" to="/hr/attendance/import"><CalendarClock className="h-4 w-4" />{copy.importAttendance}</Link><Link className="inline-flex h-10 items-center gap-2 rounded-xl bg-mis-primary px-4 text-sm font-semibold text-white hover:bg-mis-deep" to="/hr/reports"><BriefcaseBusiness className="h-4 w-4" />{copy.reports}</Link></div>
       </Card>
     </div>
   );

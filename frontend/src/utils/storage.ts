@@ -27,6 +27,11 @@ export function persistAuth(auth: AuthResponse, rememberMe: boolean): void {
   targetStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
 }
 
+export function updateStoredAuth(auth: AuthResponse): void {
+  if (localStorage.getItem(AUTH_STORAGE_KEY)) localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
+  else if (sessionStorage.getItem(AUTH_STORAGE_KEY)) sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
+}
+
 export function clearStoredAuth(): void {
   localStorage.removeItem(AUTH_STORAGE_KEY);
   sessionStorage.removeItem(AUTH_STORAGE_KEY);

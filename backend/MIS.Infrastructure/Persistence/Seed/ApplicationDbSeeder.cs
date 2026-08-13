@@ -39,16 +39,53 @@ public static class ApplicationDbSeeder
                 department.Update(department.Name, department.Code, nameArabic, department.Description, department.IsActive, now);
         }
 
+        if (!await dbContext.Departments.AnyAsync(x => x.Code == DepartmentCodes.Collections))
+            dbContext.Departments.Add(new Department("Collections", DepartmentCodes.Collections, "التحصيل", null, true, now));
+
         await dbContext.SaveChangesAsync();
         var adminDepartment = await dbContext.Departments.SingleAsync(x => x.Code == DepartmentCodes.Admin);
         var hrDepartment = await dbContext.Departments.SingleAsync(x => x.Code == DepartmentCodes.Hr);
+        var collectionsDepartment = await dbContext.Departments.SingleAsync(x => x.Code == DepartmentCodes.Collections);
         await SeedHrMasterDataAsync(dbContext, hrDepartment.Id, now);
+        await SeedCollectionsMasterDataAsync(dbContext, now);
         var adminRole = await dbContext.Roles.SingleOrDefaultAsync(role => role.Name == SystemRoleNames.Admin);
+        var hrManagerRole = await dbContext.Roles.SingleOrDefaultAsync(role => role.Name == SystemRoleNames.HrManager);
+        var hrOfficerRole = await dbContext.Roles.SingleOrDefaultAsync(role => role.Name == SystemRoleNames.HrOfficer);
 
         if (adminRole is null)
         {
             adminRole = new Role(SystemRoleNames.Admin, "System administrator role", true, now);
             dbContext.Roles.Add(adminRole);
+        }
+        if (hrManagerRole is null)
+        {
+            hrManagerRole = new Role(SystemRoleNames.HrManager, "HR manager with access to restricted compensation data", true, now);
+            dbContext.Roles.Add(hrManagerRole);
+        }
+        if (hrOfficerRole is null)
+        {
+            hrOfficerRole = new Role(SystemRoleNames.HrOfficer, "HR operations user without restricted compensation access", true, now);
+            dbContext.Roles.Add(hrOfficerRole);
+        }
+
+        var collectionsRoles = new Dictionary<string, Role>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, description) in new[]
+        {
+            (SystemRoleNames.CollectionsCollector, "Collector with access to assigned collection cases"),
+            (SystemRoleNames.CollectionsSupervisor, "Collections supervisor with team assignment and sensitive-data access"),
+            (SystemRoleNames.CollectionsReviewer, "Independent collection payment reviewer"),
+            (SystemRoleNames.CollectionsOperationsManager, "Collections operations manager"),
+            (SystemRoleNames.CollectionsClientViewer, "Restricted client portfolio viewer"),
+            (SystemRoleNames.CollectionsAuditor, "Read-only collections audit and compliance user")
+        })
+        {
+            var role = await dbContext.Roles.SingleOrDefaultAsync(x => x.Name == name);
+            if (role is null)
+            {
+                role = new Role(name, description, true, now);
+                dbContext.Roles.Add(role);
+            }
+            collectionsRoles[name] = role;
         }
 
         var adminPassword = configuration["Seed:AdminPassword"];
@@ -63,12 +100,12 @@ public static class ApplicationDbSeeder
         if (adminUser is null && !string.IsNullOrWhiteSpace(adminPassword))
         {
             adminUser = new User(username, email, "temporary-seed-hash", fullName, adminDepartment.Id, now);
+            adminUser.SetPasswordHash(new PasswordHasher<User>().HashPassword(adminUser, adminPassword), now);
             dbContext.Users.Add(adminUser);
         }
 
-        if (adminUser is not null && !string.IsNullOrWhiteSpace(adminPassword))
+        if (adminUser is not null)
         {
-            adminUser.SetPasswordHash(new PasswordHasher<User>().HashPassword(adminUser, adminPassword), now);
             adminUser.AssignRole(adminRole, now);
         }
 
@@ -84,19 +121,86 @@ public static class ApplicationDbSeeder
                 configuration["Seed:HrFullName"] ?? "HR User",
                 hrDepartment.Id,
                 now);
+            hrUser.SetPasswordHash(new PasswordHasher<User>().HashPassword(hrUser, hrPassword), now);
             dbContext.Users.Add(hrUser);
         }
 
-        if (hrUser is not null && !string.IsNullOrWhiteSpace(hrPassword))
+        if (hrUser is not null)
         {
-            hrUser.SetPasswordHash(new PasswordHasher<User>().HashPassword(hrUser, hrPassword), now);
+            var configuredRole = configuration["Seed:HrRole"];
+            hrUser.AssignRole(
+                string.Equals(configuredRole, SystemRoleNames.HrOfficer, StringComparison.OrdinalIgnoreCase)
+                    ? hrOfficerRole
+                    : hrManagerRole,
+                now);
         }
 
-        if (string.IsNullOrWhiteSpace(adminPassword) && string.IsNullOrWhiteSpace(hrPassword))
+        var collectionsPassword = configuration["Seed:CollectionsPassword"];
+        var collectionsUsername = configuration["Seed:CollectionsUsername"] ?? "collections.user";
+        var collectionsUser = await dbContext.Users.Include(x => x.UserRoles).SingleOrDefaultAsync(x => x.Username == collectionsUsername);
+        if (collectionsUser is null && !string.IsNullOrWhiteSpace(collectionsPassword))
+        {
+            collectionsUser = new User(
+                collectionsUsername,
+                configuration["Seed:CollectionsEmail"] ?? "collections@mis.local",
+                "temporary-seed-hash",
+                configuration["Seed:CollectionsFullName"] ?? "Collections User",
+                collectionsDepartment.Id,
+                now);
+            collectionsUser.SetPasswordHash(new PasswordHasher<User>().HashPassword(collectionsUser, collectionsPassword), now);
+            dbContext.Users.Add(collectionsUser);
+        }
+        if (collectionsUser is not null)
+        {
+            var configured = configuration["Seed:CollectionsRole"] ?? SystemRoleNames.CollectionsOperationsManager;
+            collectionsUser.AssignRole(collectionsRoles.GetValueOrDefault(configured) ?? collectionsRoles[SystemRoleNames.CollectionsOperationsManager], now);
+        }
+
+        if (string.IsNullOrWhiteSpace(adminPassword) && string.IsNullOrWhiteSpace(hrPassword) && string.IsNullOrWhiteSpace(collectionsPassword))
         {
             logger.LogWarning("No development users were seeded because seed passwords are not configured.");
         }
 
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static async Task SeedCollectionsMasterDataAsync(ApplicationDbContext dbContext, DateTimeOffset now)
+    {
+        var organizations = new[]
+        {
+            ("ALEXBANK", "بنك الإسكندرية", "AlexBank", CollectionsValues.OrganizationTypes.Bank),
+            ("ATTIJARIWAFA", "التجاري وفا بنك إيجيبت", "Attijariwafa Bank Egypt", CollectionsValues.OrganizationTypes.Bank),
+            ("CAE", "كريدي أجريكول مصر", "Credit Agricole Egypt", CollectionsValues.OrganizationTypes.Bank),
+            ("QIB", "بنك قطر الدولي", "QIB", CollectionsValues.OrganizationTypes.Bank),
+            ("BDC", "بنك القاهرة", "Banque du Caire", CollectionsValues.OrganizationTypes.Bank),
+            ("ELAB", "إيلاب", "ELAB", CollectionsValues.OrganizationTypes.Other),
+            ("RAYA", "راية", "Raya", CollectionsValues.OrganizationTypes.ConsumerFinance),
+            ("AMAN", "أمان", "Aman", CollectionsValues.OrganizationTypes.ConsumerFinance),
+            ("MNT_HALAN", "إم إن تي حالا", "MNT-Halan", CollectionsValues.OrganizationTypes.ConsumerFinance),
+            ("PREMIUM_CARD", "بريميوم كارد", "Premium Card", CollectionsValues.OrganizationTypes.ConsumerFinance)
+        };
+        foreach (var (code, ar, en, type) in organizations)
+            if (!await dbContext.CollectionClientOrganizations.AnyAsync(x => x.Code == code))
+                dbContext.CollectionClientOrganizations.Add(new ClientOrganization(code, ar, en, type, now));
+        await dbContext.SaveChangesAsync();
+
+        foreach (var organization in await dbContext.CollectionClientOrganizations.ToArrayAsync())
+        {
+            if (!await dbContext.CollectionPortfolios.AnyAsync(x => x.OrganizationId == organization.Id && x.Code == "MAIN"))
+                dbContext.CollectionPortfolios.Add(new CollectionPortfolio(organization.Id, "MAIN", "المحفظة الرئيسية", "Main Portfolio", "EGP", now));
+            if (await dbContext.CollectionBucketDefinitions.AnyAsync(x => x.OrganizationId == organization.Id)) continue;
+            var buckets = new[]
+            {
+                ("CURRENT", "منتظم", "Current", (int?)0, (int?)0), ("1_29", "من 1 إلى 29", "1-29", 1, 29),
+                ("30_59", "من 30 إلى 59", "30-59", 30, 59), ("60_89", "من 60 إلى 89", "60-89", 60, 89),
+                ("90_119", "من 90 إلى 119", "90-119", 90, 119), ("120_179", "من 120 إلى 179", "120-179", 120, 179),
+                ("180_PLUS", "180 فأكثر", "180+", 180, (int?)null), ("WRITE_OFF", "إعدام", "Write-Off", (int?)null, (int?)null),
+                ("LEGAL", "قانوني", "Legal", (int?)null, (int?)null)
+            };
+            var order = 0;
+            foreach (var (code, ar, en, min, max) in buckets)
+                dbContext.CollectionBucketDefinitions.Add(new DelinquencyBucketDefinition(organization.Id, null, code, ar, en, min, max, order++, now));
+        }
         await dbContext.SaveChangesAsync();
     }
 

@@ -2,6 +2,20 @@
 
 MIS Collection Firm is the foundation for an internal collection management system. The repository is organized as a production-oriented full-stack application with a React/TypeScript frontend and a Clean Architecture ASP.NET Core backend.
 
+## One-step Development Start
+
+From the repository root, run:
+
+```powershell
+.\start-dev.cmd
+```
+
+This starts the API and React application together, installs frontend packages when
+`node_modules` is missing, opens `http://localhost:5173` after both services are ready,
+and stops both processes with `Ctrl+C`. Double-clicking `start-dev.cmd` provides the
+same behavior. Use `.\start-dev.cmd -NoBrowser` when automatic browser launch is not
+wanted, or `-SkipInstall` to skip the dependency check.
+
 ## Architecture
 
 ```text
@@ -78,8 +92,13 @@ Development HR user (when `Seed:HrPassword` is configured):
 - Email: `hr@mis.local`
 - Department: `HR`
 - Password: supplied by `Seed:HrPassword`
+- Role: `HrManager` by default; set `Seed:HrRole=HrOfficer` for an operations-only user
 
 The seed password is intentionally not checked into source control.
+
+HR roles are enforced by the API, not only by the UI. `HrManager` can view and update
+restricted compensation and banking data; `HrOfficer` can operate the remaining HR
+workflows without receiving those fields in employee-profile responses.
 
 ## Database
 
@@ -111,9 +130,11 @@ If you prefer a global EF tool, the equivalent command is:
 dotnet ef database update --project MIS.Infrastructure --startup-project MIS.API
 ```
 
-Design-time EF commands intentionally have no fallback database. Set either
-`ConnectionStrings__DefaultConnection` or `MIS_DB_CONNECTION` explicitly before
-running migrations so a command cannot silently target the wrong PostgreSQL database.
+Design-time EF commands load `MIS.API/appsettings.json`, the active environment file,
+MIS.API user secrets, and then environment variables (in that precedence order).
+The checked-in connection string intentionally has no password, so configure
+`ConnectionStrings:DefaultConnection` through user secrets or set
+`ConnectionStrings__DefaultConnection` / `MIS_DB_CONNECTION` before running migrations.
 
 Core HR migrations preserve history: employee-related foreign keys are restricted rather
 than cascaded, and employees are deactivated or terminated instead of deleted.
@@ -148,6 +169,85 @@ Routes:
 - `/hr/master` - organization and HR master data
 - `/hr/reports` - report preview and organized Excel/PDF exports
 - `/hr/audit` - searchable HR audit history
+- `/collections/dashboard` - Collections Command Center and personalized work queue
+- `/collections/clients` - configurable client organizations and portfolio workspaces
+- `/collections/cases` and `/collections/cases/:id` - paged workbench and audited case 360
+- `/collections/promises` - deterministic promise-to-pay hub
+- `/collections/payments` - maker-checker daily collections review
+- `/collections/assignments` - manual or deterministic balanced/geographic assignment preview and confirmation
+- `/collections/visits` - field visit planning and results
+- `/collections/complaints` - complaint ownership, lifecycle, and SLA tracking
+- `/collections/imports` - validated portfolio upload, preview, errors, and safe confirmation
+- `/collections/audit` - immutable Collections audit history
+- `/collections/reports` - server-calculated executive, client, bucket, and collector reports with authorized CSV export
+- `/collections/settings` - audited client, portfolio, target, PTP policy, and bucket configuration
+- `/collections/branding` - validated bank/client logo management with polished fallback identity marks
+- `/collections/profile` and `/hr/profile` - self-service account, login email, and password security
+
+## Enterprise Collections Module
+
+`CollectionCase` is the operational aggregate connecting the configurable client
+organization, portfolio, customer, account, money position, bucket, assignee, activity,
+PTP, payment, visit, complaint, and audit records. Client records are not hardcoded into
+business logic; the development seed creates initial configurable organizations and
+their default portfolios and bucket definitions.
+
+Financial amounts use PostgreSQL `numeric(18,2)`. Critical writes preserve assignment,
+bucket, activity, and audit history. Collection payment approval enforces maker-checker
+separation of duties. Sensitive customer fields are masked by default, the API checks
+the reveal capability, and every reveal is audited. Backend queries enforce collector,
+team supervisor, and client/portfolio row scopes.
+
+PTP evaluation is deterministic and audited. Portfolio settings override client settings
+using `ptpGraceDays` (0-30) and `ptpToleranceAmount`; due/broken/partial/fulfilled
+transitions are refreshed by authoritative backend services. Case attachments use private
+storage, accept only content-validated PDF/JPEG/PNG up to 10 MB, and require authorized,
+audited download endpoints rather than public URLs.
+
+Case 360 also calculates a bilingual next-best-action from live operational state
+(breached complaint SLA, pending payment review, broken/due PTP, overdue follow-up, or
+priority score). Automatic assignment uses the audited `BALANCED_GEO_V1` rule: priority
+ordering, active-workload capacity, existing governorate coverage, and stable name
+tie-breaking. Both preview and confirmation reapply the caller's row-level scope.
+
+Collections roles are granular system capabilities:
+
+- `CollectionsCollector`
+- `CollectionsSupervisor`
+- `CollectionsReviewer`
+- `CollectionsOperationsManager`
+- `CollectionsClientViewer`
+- `CollectionsAuditor`
+
+For a development Collections user, configure `Seed:CollectionsPassword` and optionally
+`Seed:CollectionsUsername`, `Seed:CollectionsEmail`, `Seed:CollectionsFullName`, and
+`Seed:CollectionsRole`. The default seeded role is `CollectionsOperationsManager`.
+
+Every user has an immutable login code in the format `USR-XXXXXXXX`. Authentication
+accepts this code, the username, or the current email address. The bilingual profile
+page allows users to change their login email and password after confirming their
+current password; login codes are system-generated, unique, and cannot be edited.
+
+Desktop module navigation can be collapsed to an icon rail and remembers the user's
+choice per module. Collection and shared HR date fields use the in-system bilingual
+calendar rather than the browser's inconsistent native RTL picker. Client branding
+accepts content-validated PNG, JPEG, or WebP logos up to 2 MB; when no official logo has
+been uploaded, the UI shows a deterministic branded monogram instead of an empty icon.
+
+Portfolio import accepts CSV and XLSX up to 20 MB and 20,000 rows. Required logical
+columns (English or supported Arabic aliases) are account reference, customer code,
+customer name, outstanding balance, overdue balance, and days past due. Optional columns
+include national ID, mobile, contract reference, and product type. The workflow is:
+
+```text
+Upload -> signature/size validation -> parse -> persisted row validation
+       -> preview and error CSV -> explicit confirmation
+       -> serializable safe upsert by client + account reference -> audit
+```
+
+No invalid row is silently imported. Confirmed duplicate files are rejected by SHA-256
+within the portfolio. Configure private storage with `HrFiles__RootPath`; Collections
+imports reuse the existing protected storage service under a separate scope.
 
 ## Core HR Modules
 
@@ -182,6 +282,13 @@ HrFiles__RootPath=D:\MISData\HrFiles
 The initial working calendar is editable database data (Africa/Cairo, Sunday through
 Thursday). Weekend, holiday, special-day, grace, break, and overtime rules are read from
 the database for attendance and leave calculations.
+
+Egypt-oriented employee validation normalizes Arabic/Western digits, validates the
+14-digit national ID against birth date and gender, normalizes Egyptian mobile prefixes,
+checks IBAN length/checksum, and prevents attendance, leave, absence, delegation,
+contract, and compensation dates from falling outside the employee service period.
+Compensation changes are effective-dated and preserve prior versions. Excel and PDF HR
+exports embed the company logo, including repeated PDF page branding.
 
 ## Verification
 

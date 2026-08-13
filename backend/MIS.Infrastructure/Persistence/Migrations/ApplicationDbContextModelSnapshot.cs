@@ -531,6 +531,985 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("MIS.Domain.Entities.CaseBucketHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ChangedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("NewBucketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PreviousBucketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedById");
+
+                    b.HasIndex("NewBucketId");
+
+                    b.HasIndex("PreviousBucketId");
+
+                    b.HasIndex("CaseId", "ChangedAt");
+
+                    b.ToTable("CollectionCaseBucketHistory", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.ClientOrganization", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ContactEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LogoStorageKey")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("NameArabic")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NameEnglish")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("OrganizationType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("SettingsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("{}");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("IsActive", "OrganizationType");
+
+                    b.ToTable("CollectionClientOrganizations", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionActivity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActivityType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Channel")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("NextFollowUpAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("Result")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId", "CreatedAt");
+
+                    b.HasIndex("CreatedById", "NextFollowUpAt");
+
+                    b.ToTable("CollectionActivities", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionAssignmentHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("AssignedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssignedToId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PreviousAssigneeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("RuleCode")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid?>("TeamId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedById");
+
+                    b.HasIndex("PreviousAssigneeId");
+
+                    b.HasIndex("TeamId");
+
+                    b.HasIndex("AssignedToId", "AssignedAt");
+
+                    b.HasIndex("CaseId", "AssignedAt");
+
+                    b.ToTable("CollectionAssignmentHistory", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("FileHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<Guid?>("PaymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UploadedById")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentId");
+
+                    b.HasIndex("UploadedById");
+
+                    b.HasIndex("CaseId", "UploadedAt");
+
+                    b.HasIndex("FileHash", "CaseId");
+
+                    b.ToTable("CollectionAttachments", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("AfterJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("BeforeJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId", "OccurredAt");
+
+                    b.HasIndex("UserId", "OccurredAt");
+
+                    b.HasIndex("EntityType", "EntityId", "OccurredAt");
+
+                    b.ToTable("CollectionAuditLogs", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionCase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountReference")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid?>("AssignedCollectorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AssignedTeamId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CaseNumber")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("ContractReference")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CurrentBucketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DaysPastDue")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Fees")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTimeOffset?>("LastContactAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("LastPaymentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("NextFollowUpAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("OriginalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("OutstandingBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("OverdueBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Penalties")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("PortfolioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PrincipalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("PriorityExplanation")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("PriorityScore")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProductType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<decimal>("TotalDue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedCollectorId");
+
+                    b.HasIndex("AssignedTeamId");
+
+                    b.HasIndex("CaseNumber")
+                        .IsUnique();
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("NextFollowUpAt");
+
+                    b.HasIndex("CurrentBucketId", "DaysPastDue");
+
+                    b.HasIndex("PortfolioId", "AccountReference")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "AssignedCollectorId", "PriorityScore");
+
+                    b.ToTable("CollectionCases", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CollectionCases_Amounts", "\"OriginalAmount\" >= 0 AND \"OutstandingBalance\" >= 0 AND \"OverdueBalance\" >= 0");
+
+                            t.HasCheckConstraint("CK_CollectionCases_Dpd", "\"DaysPastDue\" >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionComplaint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Resolution")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTimeOffset>("SlaDueAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("Reference")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerId", "Status");
+
+                    b.HasIndex("Status", "SlaDueAt");
+
+                    b.ToTable("CollectionComplaints", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionCustomer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AddressArabic")
+                        .HasMaxLength(600)
+                        .HasColumnType("character varying(600)");
+
+                    b.Property<string>("AddressEnglish")
+                        .HasMaxLength(600)
+                        .HasColumnType("character varying(600)");
+
+                    b.Property<string>("AlternatePhone")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Area")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CustomerCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Employer")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("FullNameArabic")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("FullNameEnglish")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Governorate")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NationalId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PrimaryPhone")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PrimaryPhone");
+
+                    b.HasIndex("OrganizationId", "CustomerCode")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId", "NationalId")
+                        .IsUnique()
+                        .HasFilter("\"NationalId\" IS NOT NULL");
+
+                    b.ToTable("CollectionCustomers", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionImportBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("FileHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("InsertedRows")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("InvalidRows")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PortfolioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("PreviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SkippedRows")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<int>("TotalRows")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UpdatedRows")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UploadedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ValidRows")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PortfolioId");
+
+                    b.HasIndex("UploadedById");
+
+                    b.HasIndex("FileHash", "PortfolioId");
+
+                    b.HasIndex("OrganizationId", "UploadedAt");
+
+                    b.HasIndex("Status", "UploadedAt");
+
+                    b.ToTable("CollectionImportBatches", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionImportRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountReference")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContractReference")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CustomerCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("DaysPastDue")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ErrorsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("IsValid")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NameArabic")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NameEnglish")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NationalId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<decimal?>("OutstandingBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("OverdueBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ProductType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("RawJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("RowNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId", "IsValid");
+
+                    b.HasIndex("BatchId", "RowNumber")
+                        .IsUnique();
+
+                    b.ToTable("CollectionImportRows", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateOnly>("PaymentDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ProofStorageKey")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("ReferenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SubmittedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VerifiedById")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReferenceNumber")
+                        .IsUnique();
+
+                    b.HasIndex("SubmittedById");
+
+                    b.HasIndex("VerifiedById");
+
+                    b.HasIndex("CaseId", "PaymentDate");
+
+                    b.HasIndex("Status", "SubmittedAt");
+
+                    b.ToTable("CollectionPayments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CollectionPayments_Amount", "\"Amount\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionPortfolio", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NameArabic")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NameEnglish")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SettingsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("{}");
+
+                    b.Property<decimal?>("TargetAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("CollectionPortfolios", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionTeam", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NameArabic")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("NameEnglish")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<Guid?>("SupervisorId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("SupervisorId");
+
+                    b.ToTable("CollectionTeams", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionTeamMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId", "UserId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "IsActive");
+
+                    b.ToTable("CollectionTeamMembers", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionUserAccess", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PortfolioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("PortfolioId");
+
+                    b.HasIndex("UserId", "OrganizationId", "PortfolioId")
+                        .IsUnique();
+
+                    b.ToTable("CollectionUserAccess", (string)null);
+                });
+
             modelBuilder.Entity("MIS.Domain.Entities.ContractType", b =>
                 {
                     b.Property<Guid>("Id")
@@ -625,6 +1604,60 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("DelegationTypes", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.DelinquencyBucketDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("MaximumDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("MinimumDays")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NameArabic")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NameEnglish")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PortfolioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PortfolioId");
+
+                    b.HasIndex("OrganizationId", "PortfolioId", "Code")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId", "PortfolioId", "SortOrder");
+
+                    b.ToTable("CollectionBucketDefinitions", (string)null);
                 });
 
             modelBuilder.Entity("MIS.Domain.Entities.Department", b =>
@@ -869,6 +1902,10 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly>("AbsenceDate")
                         .HasColumnType("date");
 
+                    b.Property<decimal?>("ApprovedDeductionAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<string>("AttendanceSource")
                         .IsRequired()
                         .HasMaxLength(24)
@@ -884,6 +1921,23 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<string>("PayrollImpactStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasDefaultValue("NotApplicable");
+
+                    b.Property<string>("PayrollNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset?>("PayrollReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PayrollReviewedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -892,6 +1946,12 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)");
+
+                    b.Property<decimal>("SuggestedDeductionAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -905,13 +1965,22 @@ namespace MIS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("AbsenceDate");
 
+                    b.HasIndex("PayrollImpactStatus");
+
+                    b.HasIndex("PayrollReviewedByUserId");
+
                     b.HasIndex("Status");
 
-                    b.HasIndex("EmployeeId", "AbsenceDate");
+                    b.HasIndex(new[] { "EmployeeId", "AbsenceDate" }, "UX_EmployeeAbsences_Employee_Date")
+                        .IsUnique();
 
                     b.ToTable("EmployeeAbsences", null, t =>
                         {
                             t.HasCheckConstraint("CK_EmployeeAbsences_AttendanceSource", "\"AttendanceSource\" = 'Manual'");
+
+                            t.HasCheckConstraint("CK_EmployeeAbsences_DeductionAmounts", "\"SuggestedDeductionAmount\" >= 0 AND (\"ApprovedDeductionAmount\" IS NULL OR \"ApprovedDeductionAmount\" >= 0)");
+
+                            t.HasCheckConstraint("CK_EmployeeAbsences_PayrollImpactStatus", "\"PayrollImpactStatus\" IN ('NotApplicable', 'PendingReview', 'Approved', 'Excluded')");
 
                             t.HasCheckConstraint("CK_EmployeeAbsences_Status", "\"Status\" IN ('Pending', 'Excused', 'Unexcused')");
 
@@ -1410,6 +2479,78 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.ToTable("EmploymentTypes", (string)null);
                 });
 
+            modelBuilder.Entity("MIS.Domain.Entities.FieldVisit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(600)
+                        .HasColumnType("character varying(600)");
+
+                    b.Property<string>("Area")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("CheckInLatitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("numeric(9,6)");
+
+                    b.Property<decimal?>("CheckInLongitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("numeric(9,6)");
+
+                    b.Property<DateTimeOffset?>("CheckedInAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("CheckedOutAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CollectorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Governorate")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(3000)
+                        .HasColumnType("character varying(3000)");
+
+                    b.Property<string>("Result")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("ScheduledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("CollectorId", "ScheduledAt", "Status");
+
+                    b.ToTable("CollectionFieldVisits", (string)null);
+                });
+
             modelBuilder.Entity("MIS.Domain.Entities.HrAuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1665,6 +2806,66 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.ToTable("Positions", (string)null);
                 });
 
+            modelBuilder.Entity("MIS.Domain.Entities.PromiseToPay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ActualPaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid>("CollectorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("EvaluatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("FulfilledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateOnly>("PromiseDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("PromisedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CollectorId");
+
+                    b.HasIndex("CaseId", "PromiseDate");
+
+                    b.HasIndex("Status", "PromiseDate");
+
+                    b.ToTable("CollectionPromisesToPay", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CollectionPromises_Amount", "\"PromisedAmount\" > 0 AND \"ActualPaidAmount\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("MIS.Domain.Entities.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1726,6 +2927,11 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("LoginCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(512)
@@ -1744,6 +2950,9 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("LoginCode")
                         .IsUnique();
 
                     b.HasIndex("Username")
@@ -1970,6 +3179,365 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.Navigation("WorkingCalendar");
                 });
 
+            modelBuilder.Entity("MIS.Domain.Entities.CaseBucketHistory", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.CollectionCase", "Case")
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "ChangedBy")
+                        .WithMany()
+                        .HasForeignKey("ChangedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MIS.Domain.Entities.DelinquencyBucketDefinition", null)
+                        .WithMany()
+                        .HasForeignKey("NewBucketId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.DelinquencyBucketDefinition", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousBucketId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Case");
+
+                    b.Navigation("ChangedBy");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionActivity", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.CollectionCase", "Case")
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Case");
+
+                    b.Navigation("CreatedBy");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionAssignmentHistory", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.User", "AssignedBy")
+                        .WithMany()
+                        .HasForeignKey("AssignedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "AssignedTo")
+                        .WithMany()
+                        .HasForeignKey("AssignedToId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.CollectionCase", "Case")
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "PreviousAssignee")
+                        .WithMany()
+                        .HasForeignKey("PreviousAssigneeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MIS.Domain.Entities.CollectionTeam", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AssignedBy");
+
+                    b.Navigation("AssignedTo");
+
+                    b.Navigation("Case");
+
+                    b.Navigation("PreviousAssignee");
+
+                    b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionAttachment", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.CollectionCase", "Case")
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.CollectionPayment", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MIS.Domain.Entities.User", "UploadedBy")
+                        .WithMany()
+                        .HasForeignKey("UploadedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Case");
+
+                    b.Navigation("Payment");
+
+                    b.Navigation("UploadedBy");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionAuditLog", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.CollectionCase", "Case")
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MIS.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Case");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionCase", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.User", "AssignedCollector")
+                        .WithMany()
+                        .HasForeignKey("AssignedCollectorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MIS.Domain.Entities.CollectionTeam", "AssignedTeam")
+                        .WithMany()
+                        .HasForeignKey("AssignedTeamId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MIS.Domain.Entities.DelinquencyBucketDefinition", "CurrentBucket")
+                        .WithMany()
+                        .HasForeignKey("CurrentBucketId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.CollectionCustomer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.CollectionPortfolio", "Portfolio")
+                        .WithMany()
+                        .HasForeignKey("PortfolioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AssignedCollector");
+
+                    b.Navigation("AssignedTeam");
+
+                    b.Navigation("CurrentBucket");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Portfolio");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionComplaint", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.CollectionCase", "Case")
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Case");
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionCustomer", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.ClientOrganization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionImportBatch", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.ClientOrganization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.CollectionPortfolio", "Portfolio")
+                        .WithMany()
+                        .HasForeignKey("PortfolioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "UploadedBy")
+                        .WithMany()
+                        .HasForeignKey("UploadedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("Portfolio");
+
+                    b.Navigation("UploadedBy");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionImportRow", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.CollectionImportBatch", "Batch")
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Batch");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionPayment", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.CollectionCase", "Case")
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "SubmittedBy")
+                        .WithMany()
+                        .HasForeignKey("SubmittedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "VerifiedBy")
+                        .WithMany()
+                        .HasForeignKey("VerifiedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Case");
+
+                    b.Navigation("SubmittedBy");
+
+                    b.Navigation("VerifiedBy");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionPortfolio", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.ClientOrganization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionTeam", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.User", "Supervisor")
+                        .WithMany()
+                        .HasForeignKey("SupervisorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Supervisor");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionTeamMember", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.CollectionTeam", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionUserAccess", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.ClientOrganization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.CollectionPortfolio", "Portfolio")
+                        .WithMany()
+                        .HasForeignKey("PortfolioId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MIS.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("Portfolio");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.DelinquencyBucketDefinition", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.ClientOrganization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.CollectionPortfolio", "Portfolio")
+                        .WithMany()
+                        .HasForeignKey("PortfolioId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("Portfolio");
+                });
+
             modelBuilder.Entity("MIS.Domain.Entities.Employee", b =>
                 {
                     b.HasOne("MIS.Domain.Entities.Branch", "Branch")
@@ -2017,7 +3585,14 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MIS.Domain.Entities.User", "PayrollReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("PayrollReviewedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Employee");
+
+                    b.Navigation("PayrollReviewedByUser");
                 });
 
             modelBuilder.Entity("MIS.Domain.Entities.EmployeeCompensation", b =>
@@ -2176,6 +3751,33 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.Navigation("UpdatedByUser");
                 });
 
+            modelBuilder.Entity("MIS.Domain.Entities.FieldVisit", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.CollectionCase", "Case")
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "Collector")
+                        .WithMany()
+                        .HasForeignKey("CollectorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Case");
+
+                    b.Navigation("Collector");
+
+                    b.Navigation("CreatedBy");
+                });
+
             modelBuilder.Entity("MIS.Domain.Entities.HrAuditLog", b =>
                 {
                     b.HasOne("MIS.Domain.Entities.Employee", "Employee")
@@ -2242,6 +3844,25 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Department");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.PromiseToPay", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.CollectionCase", "Case")
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "Collector")
+                        .WithMany()
+                        .HasForeignKey("CollectorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Case");
+
+                    b.Navigation("Collector");
                 });
 
             modelBuilder.Entity("MIS.Domain.Entities.User", b =>

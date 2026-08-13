@@ -16,8 +16,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: 'bg-mis-primary text-white shadow-sm hover:bg-mis-deep disabled:bg-slate-300 disabled:text-slate-600',
-  secondary: 'bg-mis-pale text-mis-deep hover:bg-mis-sky/30 disabled:bg-slate-100 disabled:text-slate-400',
-  outline: 'border border-mis-border bg-white text-slate-700 hover:border-mis-blue hover:bg-mis-pale/50 hover:text-mis-primary disabled:bg-slate-50 disabled:text-slate-400',
+  secondary: 'border border-mis-sky/60 bg-mis-pale text-mis-deep shadow-sm hover:border-mis-primary hover:bg-white disabled:bg-slate-100 disabled:text-slate-400',
+  outline: 'border border-slate-300 bg-white text-slate-800 shadow-sm hover:border-mis-primary hover:bg-mis-pale/40 hover:text-mis-deep disabled:bg-slate-50 disabled:text-slate-400',
   ghost: 'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-mis-primary disabled:text-slate-400',
   danger: 'bg-red-600 text-white shadow-sm hover:bg-red-700 disabled:bg-red-200 disabled:text-red-500',
 };
@@ -49,7 +49,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   return (
     <button
       aria-busy={isLoading || undefined}
-      className={`inline-flex items-center justify-center gap-2 font-semibold transition duration-150 disabled:cursor-not-allowed ${sizeClasses[size]} ${variantClasses[variant]} ${widthClass} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 font-bold transition duration-150 disabled:cursor-not-allowed ${sizeClasses[size]} ${variantClasses[variant]} ${widthClass} ${className}`}
       disabled={disabled || isLoading}
       ref={ref}
       {...props}

@@ -16,10 +16,11 @@ export interface TabsProps {
   items: TabItem[];
   onChange: (id: string) => void;
   orientation?: 'horizontal' | 'vertical';
+  wrap?: boolean;
   value: string;
 }
 
-export function Tabs({ activationMode = 'automatic', ariaLabel, className = '', items, onChange, orientation = 'horizontal', value }: TabsProps) {
+export function Tabs({ activationMode = 'automatic', ariaLabel, className = '', items, onChange, orientation = 'horizontal', value, wrap = false }: TabsProps) {
   const generatedId = useId();
 
   function moveFocus(event: KeyboardEvent<HTMLButtonElement>, itemId: string) {
@@ -48,7 +49,7 @@ export function Tabs({ activationMode = 'automatic', ariaLabel, className = '', 
     <div
       aria-label={ariaLabel}
       aria-orientation={orientation}
-      className={`${orientation === 'horizontal' ? 'flex overflow-x-auto border-b border-mis-border' : 'flex flex-col border-e border-mis-border'} ${className}`}
+      className={`${orientation === 'horizontal' ? wrap ? 'grid grid-cols-2 gap-2 p-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6' : 'flex overflow-x-auto border-b border-mis-border' : 'flex flex-col border-e border-mis-border'} ${className}`}
       role="tablist"
     >
       {items.map((item) => {
@@ -57,7 +58,7 @@ export function Tabs({ activationMode = 'automatic', ariaLabel, className = '', 
           <button
             aria-controls={item.panelId}
             aria-selected={selected}
-            className={`inline-flex min-h-11 flex-none items-center justify-center gap-2 border-mis-primary px-4 text-sm font-semibold transition focus-visible:relative disabled:cursor-not-allowed disabled:opacity-40 ${orientation === 'horizontal' ? `border-b-2 ${selected ? 'border-mis-primary text-mis-deep' : 'border-transparent text-slate-500 hover:border-mis-sky hover:text-mis-primary'}` : `border-e-2 ${selected ? 'border-mis-primary bg-mis-pale/50 text-mis-deep' : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-mis-primary'}`}`}
+            className={`inline-flex min-h-11 flex-none items-center justify-center gap-2 px-4 text-sm font-semibold transition focus-visible:relative disabled:cursor-not-allowed disabled:opacity-40 ${orientation === 'horizontal' ? wrap ? `rounded-xl border ${selected ? 'border-mis-primary bg-mis-primary text-white shadow-sm' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-mis-sky hover:bg-white hover:text-mis-deep'}` : `border-b-2 border-mis-primary ${selected ? 'border-mis-primary text-mis-deep' : 'border-transparent text-slate-600 hover:border-mis-sky hover:text-mis-primary'}` : `border-e-2 border-mis-primary ${selected ? 'border-mis-primary bg-mis-pale/50 text-mis-deep' : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-mis-primary'}`}`}
             disabled={item.disabled}
             id={`${generatedId}-${item.id}`}
             key={item.id}

@@ -1,5 +1,6 @@
-import { forwardRef, useId, type InputHTMLAttributes, type ReactNode } from 'react';
-import { FormField, formControlClass, joinDescribedBy } from './FormField';
+import { forwardRef, useId, type ChangeEvent, type InputHTMLAttributes, type ReactNode } from 'react';
+import { FormField } from './FormField';
+import { ProfessionalDateInput } from './ProfessionalDateInput';
 
 export interface DateInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   containerClassName?: string;
@@ -9,38 +10,13 @@ export interface DateInputProps extends Omit<InputHTMLAttributes<HTMLInputElemen
 }
 
 export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(function DateInput(
-  {
-    'aria-describedby': ariaDescribedBy,
-    className = '',
-    containerClassName = '',
-    error,
-    hint,
-    id,
-    label,
-    name,
-    required,
-    ...props
-  },
+  { className = '', containerClassName = '', defaultValue, disabled, error, hint, id, label, max, min, name, onChange, required, value },
   ref,
 ) {
-  const generatedId = useId();
-  const inputId = id ?? name ?? generatedId;
-  const errorId = error ? `${inputId}-error` : undefined;
-  const hintId = hint ? `${inputId}-hint` : undefined;
-
-  return (
-    <FormField className={containerClassName} error={error} errorId={errorId} hint={hint} hintId={hintId} inputId={inputId} label={label} required={required}>
-      <input
-        aria-describedby={joinDescribedBy(ariaDescribedBy, hintId, errorId)}
-        aria-invalid={error ? true : undefined}
-        className={`h-12 px-4 ${formControlClass} ${error ? 'border-red-400' : 'border-mis-border'} ${className}`}
-        id={inputId}
-        name={name}
-        ref={ref}
-        required={required}
-        type="date"
-        {...props}
-      />
-    </FormField>
-  );
+  void ref;
+  const generatedId = useId(); const inputId = id ?? name ?? generatedId; const errorId = error ? `${inputId}-error` : undefined; const hintId = hint ? `${inputId}-hint` : undefined;
+  const notify = (next: string) => { const target = { name: name ?? '', value: next } as HTMLInputElement; onChange?.({ target, currentTarget: target } as ChangeEvent<HTMLInputElement>); };
+  return <FormField className={containerClassName} error={error} errorId={errorId} hint={hint} hintId={hintId} inputId={inputId} label={label} required={required}>
+    <ProfessionalDateInput id={inputId} name={name} className={className} defaultValue={typeof defaultValue === 'string' ? defaultValue : undefined} disabled={disabled} max={typeof max === 'string' ? max : undefined} min={typeof min === 'string' ? min : undefined} onChange={notify} required={required} value={typeof value === 'string' ? value : undefined} />
+  </FormField>;
 });

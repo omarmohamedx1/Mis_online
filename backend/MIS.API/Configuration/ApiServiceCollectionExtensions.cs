@@ -63,6 +63,7 @@ public static class ApiServiceCollectionExtensions
         });
 
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IUserProfileService, UserProfileService>();
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserContext, CurrentUserContext>();
         services.AddInfrastructureServices(configuration);
@@ -72,6 +73,58 @@ public static class ApiServiceCollectionExtensions
             options.AddPolicy(
                 AuthorizationPolicies.HrDepartment,
                 policy => policy.RequireAuthenticatedUser().RequireClaim("department", DepartmentCodes.Hr));
+            options.AddPolicy(
+                AuthorizationPolicies.HrSensitiveData,
+                policy => policy.RequireAuthenticatedUser()
+                    .RequireClaim("department", DepartmentCodes.Hr)
+                    .RequireRole(SystemRoleNames.HrManager));
+            options.AddPolicy(
+                AuthorizationPolicies.CollectionsAccess,
+                policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+                    context.User.IsInRole(SystemRoleNames.Admin) ||
+                    context.User.HasClaim("department", DepartmentCodes.Collections)));
+            options.AddPolicy(
+                AuthorizationPolicies.CollectionsSensitiveData,
+                policy => policy.RequireAuthenticatedUser().RequireRole(
+                    SystemRoleNames.Admin,
+                    SystemRoleNames.CollectionsOperationsManager,
+                    SystemRoleNames.CollectionsSupervisor,
+                    SystemRoleNames.CollectionsAuditor));
+            options.AddPolicy(
+                AuthorizationPolicies.CollectionsAssignmentManage,
+                policy => policy.RequireAuthenticatedUser().RequireRole(
+                    SystemRoleNames.Admin,
+                    SystemRoleNames.CollectionsOperationsManager,
+                    SystemRoleNames.CollectionsSupervisor));
+            options.AddPolicy(
+                AuthorizationPolicies.CollectionsPaymentApprove,
+                policy => policy.RequireAuthenticatedUser().RequireRole(
+                    SystemRoleNames.Admin,
+                    SystemRoleNames.CollectionsOperationsManager,
+                    SystemRoleNames.CollectionsReviewer));
+            options.AddPolicy(
+                AuthorizationPolicies.CollectionsAuditView,
+                policy => policy.RequireAuthenticatedUser().RequireRole(
+                    SystemRoleNames.Admin,
+                    SystemRoleNames.CollectionsOperationsManager,
+                    SystemRoleNames.CollectionsAuditor));
+            options.AddPolicy(
+                AuthorizationPolicies.CollectionsImportManage,
+                policy => policy.RequireAuthenticatedUser().RequireRole(
+                    SystemRoleNames.Admin,
+                    SystemRoleNames.CollectionsOperationsManager));
+            options.AddPolicy(
+                AuthorizationPolicies.CollectionsConfigurationManage,
+                policy => policy.RequireAuthenticatedUser().RequireRole(
+                    SystemRoleNames.Admin,
+                    SystemRoleNames.CollectionsOperationsManager));
+            options.AddPolicy(
+                AuthorizationPolicies.CollectionsReportExport,
+                policy => policy.RequireAuthenticatedUser().RequireRole(
+                    SystemRoleNames.Admin,
+                    SystemRoleNames.CollectionsOperationsManager,
+                    SystemRoleNames.CollectionsSupervisor,
+                    SystemRoleNames.CollectionsAuditor));
         });
 
         return services;

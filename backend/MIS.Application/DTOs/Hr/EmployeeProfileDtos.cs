@@ -9,6 +9,7 @@ public sealed record EmployeeProfileDto(
     string Status,
     bool IsActive,
     bool HasProfilePhoto,
+    bool CanManageCompensation,
     EmployeePersonalInformationDto Personal,
     EmployeeContactInformationDto Contact,
     EmployeeEmploymentInformationDto Employment,
@@ -47,6 +48,7 @@ public sealed record EmployeeEmploymentInformationDto(
     Guid? DirectManagerId,
     string? DirectManagerName,
     DateOnly? HireDate,
+    DateOnly? TerminationDate,
     string Status);
 
 public sealed record EmployeeContractInformationDto(
@@ -66,6 +68,7 @@ public sealed record EmployeeCompensationDto(
     decimal BasicSalary,
     decimal Allowances,
     decimal TotalSalary,
+    DateOnly EffectiveFrom,
     string? BankName,
     string? BankAccount,
     string? Iban,
@@ -177,6 +180,8 @@ public sealed class UpdateEmployeeCompensationRequest
 
     [Range(0, 9999999999999999.99)]
     public decimal Allowances { get; init; }
+
+    public DateOnly EffectiveFrom { get; init; }
 
     [StringLength(160)]
     public string? BankName { get; init; }

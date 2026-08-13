@@ -22,19 +22,27 @@ internal static class HrReportExportWriter
         var worksheet = workbook.Worksheets.Add(SanitizeWorksheetName(reportName));
         worksheet.RightToLeft = ApiTextLocalizer.IsArabic;
         var columnCount = Math.Max(1, columns.Count);
-        worksheet.Cell(1, 1).Value = reportName;
-        worksheet.Range(1, 1, 1, columnCount).Merge();
-        worksheet.Cell(1, 1).Style.Font.Bold = true;
-        worksheet.Cell(1, 1).Style.Font.FontSize = 16;
-        worksheet.Cell(1, 1).Style.Font.FontColor = XLColor.White;
-        worksheet.Cell(1, 1).Style.Fill.BackgroundColor = XLColor.FromHtml("#10255C");
-        worksheet.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        var layoutColumnCount = Math.Max(2, columnCount);
+        using (var logoStream = OpenLogoStream())
+        {
+            worksheet.AddPicture(logoStream, "MIS Collection Firm Logo")
+                .MoveTo(worksheet.Cell(1, 1))
+                .WithSize(72, 69);
+        }
+        worksheet.Row(1).Height = 54;
+        worksheet.Cell(1, 2).Value = reportName;
+        worksheet.Range(1, 2, 1, layoutColumnCount).Merge();
+        worksheet.Cell(1, 2).Style.Font.Bold = true;
+        worksheet.Cell(1, 2).Style.Font.FontSize = 16;
+        worksheet.Cell(1, 2).Style.Font.FontColor = XLColor.White;
+        worksheet.Cell(1, 2).Style.Fill.BackgroundColor = XLColor.FromHtml("#10255C");
+        worksheet.Cell(1, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-        worksheet.Cell(2, 1).Value = ApiTextLocalizer.IsArabic
+        worksheet.Cell(2, 2).Value = ApiTextLocalizer.IsArabic
             ? $"تاريخ الإنشاء: {generatedAt:yyyy-MM-dd HH:mm 'UTC'}"
             : $"Generated: {generatedAt:yyyy-MM-dd HH:mm 'UTC'}";
-        worksheet.Range(2, 1, 2, columnCount).Merge();
-        var rowNumber = 3;
+        worksheet.Range(2, 2, 2, layoutColumnCount).Merge();
+        var rowNumber = 4;
         if (filters.Count > 0)
         {
             worksheet.Cell(rowNumber, 1).Value = ApiTextLocalizer.Localize("Applied Filters");
@@ -113,141 +121,151 @@ internal static class HrReportExportWriter
         var metaFont = new XFont(fontFamily, 8, XFontStyleEx.Regular, fontOptions);
         var headerFont = new XFont(fontFamily, 7, XFontStyleEx.Bold, fontOptions);
         var cellFont = new XFont(fontFamily, 7, XFontStyleEx.Regular, fontOptions);
-        PdfPage? page = null;
-        XGraphics? graphics = null;
-        var y = 0d;
-        var margin = 28d;
-        var rowHeight = 18d;
+        using var logoStream = OpenLogoStream();
+        using var logo = XImage.FromStream(logoStream);
         var sourceColumns = columns.Count == 0
             ? [new HrReportColumnDto("value", ApiTextLocalizer.Localize("Value"))]
             : columns.ToArray();
-        // Keep the first logical column at the reading edge: left in English and right in Arabic.
-        var columnList = rightToLeft ? sourceColumns.Reverse().ToArray() : sourceColumns;
+        var columnGroups = BuildPdfColumnGroups(sourceColumns);
+        const double margin = 28d;
+        const double rowHeight = 22d;
 
-        void NewPage(bool includeTitle)
+        for (var groupIndex = 0; groupIndex < columnGroups.Count; groupIndex++)
         {
-            graphics?.Dispose();
-            page = document.AddPage();
-            page.Size = PageSize.A4;
-            page.Orientation = PageOrientation.Landscape;
-            graphics = XGraphics.FromPdfPage(page);
-            y = margin;
-            if (includeTitle)
+            var logicalColumns = columnGroups[groupIndex];
+            var columnList = rightToLeft ? logicalColumns.Reverse().ToArray() : logicalColumns;
+            PdfPage? page = null;
+            XGraphics? graphics = null;
+            var y = 0d;
+
+            void NewPage(bool includeMetadata)
             {
-                if (rightToLeft)
+                graphics?.Dispose();
+                page = document.AddPage();
+                page.Size = PageSize.A4;
+                page.Orientation = PageOrientation.Landscape;
+                graphics = XGraphics.FromPdfPage(page);
+                y = margin;
+                const double logoHeight = 48d;
+                const double logoWidth = 50d;
+                var logoX = rightToLeft ? page.Width.Point - margin - logoWidth : margin;
+                graphics.DrawImage(logo, logoX, y, logoWidth, logoHeight);
+                var titleX = rightToLeft ? margin : margin + logoWidth + 10;
+                var titleWidth = page.Width.Point - (margin * 2) - logoWidth - 10;
+                graphics.DrawString(
+                    rightToLeft ? PreparePdfText(reportName, true) : reportName,
+                    titleFont,
+                    XBrushes.DarkBlue,
+                    new XRect(titleX, y + 12, titleWidth, 24),
+                    rightToLeft ? XStringFormats.TopRight : XStringFormats.TopLeft);
+                y += logoHeight + 5;
+
+                if (columnGroups.Count > 1)
                 {
-                    graphics.DrawString(
-                        PreparePdfText(reportName, true),
-                        titleFont,
-                        XBrushes.DarkBlue,
-                        new XRect(margin, y, page.Width.Point - (margin * 2), 20),
-                        XStringFormats.TopRight);
-                }
-                else
-                {
-                    graphics.DrawString(reportName, titleFont, XBrushes.DarkBlue, new XPoint(margin, y + 14));
-                }
-                y += 24;
-                var generatedLabel = ApiTextLocalizer.IsArabic
-                    ? $"تاريخ الإنشاء: {generatedAt:yyyy-MM-dd HH:mm 'UTC'}"
-                    : $"Generated: {generatedAt:yyyy-MM-dd HH:mm 'UTC'}";
-                DrawMetadata(generatedLabel);
-                y += 15;
-                foreach (var filter in filters)
-                {
-                    DrawMetadata($"{filter.Key}: {filter.Value}");
+                    var sectionLabel = rightToLeft
+                        ? $"مجموعة الحقول {groupIndex + 1} من {columnGroups.Count}"
+                        : $"Column group {groupIndex + 1} of {columnGroups.Count}";
+                    DrawMetadata(sectionLabel, XBrushes.DarkBlue);
                     y += 12;
                 }
-                y += 6;
-            }
-            DrawHeader();
 
-            void DrawMetadata(string value)
+                if (includeMetadata)
+                {
+                    var generatedLabel = rightToLeft
+                        ? $"تاريخ الإنشاء: {generatedAt:yyyy-MM-dd HH:mm 'UTC'}"
+                        : $"Generated: {generatedAt:yyyy-MM-dd HH:mm 'UTC'}";
+                    DrawMetadata(generatedLabel, XBrushes.Black);
+                    y += 14;
+                    foreach (var filter in filters)
+                    {
+                        DrawMetadata($"{filter.Key}: {filter.Value}", XBrushes.Black);
+                        y += 12;
+                    }
+                }
+                y += 6;
+                DrawHeader();
+
+                void DrawMetadata(string value, XBrush brush)
+                {
+                    if (page is null || graphics is null) return;
+                    graphics.DrawString(
+                        rightToLeft ? PreparePdfText(value, true) : value,
+                        metaFont,
+                        brush,
+                        new XRect(margin, y, page.Width.Point - (margin * 2), 12),
+                        rightToLeft ? XStringFormats.TopRight : XStringFormats.TopLeft);
+                }
+            }
+
+            void DrawHeader()
             {
                 if (page is null || graphics is null) return;
-                if (rightToLeft)
+                var usableWidth = page.Width.Point - (margin * 2);
+                var columnWidth = usableWidth / columnList.Length;
+                for (var index = 0; index < columnList.Length; index++)
                 {
+                    var x = margin + (index * columnWidth);
+                    graphics.DrawRectangle(new XSolidBrush(XColor.FromArgb(11, 99, 143)), x, y, columnWidth, rowHeight);
                     graphics.DrawString(
-                        PreparePdfText(value, true),
-                        metaFont,
-                        XBrushes.Black,
-                        new XRect(margin, y, page.Width.Point - (margin * 2), 12),
-                        XStringFormats.TopRight);
+                        FitText(graphics, columnList[index].Header, headerFont, columnWidth - 8, rightToLeft),
+                        headerFont, XBrushes.White,
+                        new XRect(x + 4, y + 5, columnWidth - 8, rowHeight - 4),
+                        rightToLeft ? XStringFormats.TopRight : XStringFormats.TopLeft);
                 }
-                else
+                y += rowHeight;
+            }
+
+            NewPage(groupIndex == 0);
+            foreach (var row in rows)
+            {
+                if (page is null || graphics is null) break;
+                if (y + rowHeight > page.Height.Point - margin) NewPage(false);
+                var usableWidth = page!.Width.Point - (margin * 2);
+                var columnWidth = usableWidth / columnList.Length;
+                for (var index = 0; index < columnList.Length; index++)
                 {
-                    graphics.DrawString(value, metaFont, XBrushes.Black, new XPoint(margin, y + 8));
+                    var x = margin + (index * columnWidth);
+                    graphics!.DrawRectangle(XPens.LightGray, x, y, columnWidth, rowHeight);
+                    var value = row.Values.GetValueOrDefault(columnList[index].Key) ?? string.Empty;
+                    graphics.DrawString(
+                        FitText(graphics, value, cellFont, columnWidth - 8, rightToLeft),
+                        cellFont, XBrushes.Black,
+                        new XRect(x + 4, y + 5, columnWidth - 8, rowHeight - 4),
+                        rightToLeft ? XStringFormats.TopRight : XStringFormats.TopLeft);
                 }
+                y += rowHeight;
             }
-        }
 
-        void DrawHeader()
-        {
-            if (page is null || graphics is null) return;
-            var usableWidth = page.Width.Point - (margin * 2);
-            var columnWidth = usableWidth / columnList.Length;
-            for (var index = 0; index < columnList.Length; index++)
+            if (rows.Count == 0 && graphics is not null && page is not null)
             {
-                var x = margin + (index * columnWidth);
-                graphics.DrawRectangle(new XSolidBrush(XColor.FromArgb(11, 99, 143)), x, y, columnWidth, rowHeight);
+                var noData = rightToLeft ? "لا توجد بيانات مطابقة للفلاتر المطبقة." : "No data matched the applied filters.";
                 graphics.DrawString(
-                    FitText(graphics, columnList[index].Header, headerFont, columnWidth - 6, rightToLeft),
-                    headerFont,
-                    XBrushes.White,
-                    new XRect(x + 3, y + 3, columnWidth - 6, rowHeight - 4),
-                    rightToLeft ? XStringFormats.TopRight : XStringFormats.TopLeft);
-            }
-            y += rowHeight;
-        }
-
-        NewPage(true);
-        foreach (var row in rows)
-        {
-            if (page is null || graphics is null) break;
-            if (y + rowHeight > page.Height.Point - margin)
-            {
-                NewPage(false);
-            }
-            var usableWidth = page!.Width.Point - (margin * 2);
-            var columnWidth = usableWidth / columnList.Length;
-            for (var index = 0; index < columnList.Length; index++)
-            {
-                var x = margin + (index * columnWidth);
-                graphics!.DrawRectangle(XPens.LightGray, x, y, columnWidth, rowHeight);
-                var value = row.Values.GetValueOrDefault(columnList[index].Key) ?? string.Empty;
-                graphics.DrawString(
-                    FitText(graphics, value, cellFont, columnWidth - 6, rightToLeft),
-                    cellFont,
-                    XBrushes.Black,
-                    new XRect(x + 3, y + 3, columnWidth - 6, rowHeight - 4),
-                    rightToLeft ? XStringFormats.TopRight : XStringFormats.TopLeft);
-            }
-            y += rowHeight;
-        }
-
-        if (rows.Count == 0 && graphics is not null && page is not null)
-        {
-            var noData = ApiTextLocalizer.IsArabic
-                ? "لا توجد بيانات مطابقة للفلاتر المطبقة."
-                : "No data matched the applied filters.";
-            if (rightToLeft)
-            {
-                graphics.DrawString(
-                    PreparePdfText(noData, true),
-                    cellFont,
-                    XBrushes.Black,
+                    rightToLeft ? PreparePdfText(noData, true) : noData,
+                    cellFont, XBrushes.Black,
                     new XRect(margin, y + 4, page.Width.Point - (margin * 2), rowHeight),
-                    XStringFormats.TopRight);
+                    rightToLeft ? XStringFormats.TopRight : XStringFormats.TopLeft);
             }
-            else
-            {
-                graphics.DrawString(noData, cellFont, XBrushes.Black, new XPoint(margin, y + 14));
-            }
+            graphics?.Dispose();
         }
-        graphics?.Dispose();
+
         using var stream = new MemoryStream();
         document.Save(stream, false);
         return stream.ToArray();
+    }
+
+    private static IReadOnlyList<HrReportColumnDto[]> BuildPdfColumnGroups(HrReportColumnDto[] columns)
+    {
+        const int maximumColumnsPerPage = 6;
+        const int repeatedIdentityColumns = 2;
+        if (columns.Length <= maximumColumnsPerPage) return [columns];
+
+        var identity = columns.Take(repeatedIdentityColumns).ToArray();
+        var result = new List<HrReportColumnDto[]>();
+        for (var index = repeatedIdentityColumns; index < columns.Length; index += maximumColumnsPerPage - repeatedIdentityColumns)
+        {
+            result.Add(identity.Concat(columns.Skip(index).Take(maximumColumnsPerPage - repeatedIdentityColumns)).ToArray());
+        }
+        return result;
     }
 
     private static string FitText(XGraphics graphics, string value, XFont font, double maximumWidth, bool rightToLeft)
@@ -266,6 +284,10 @@ internal static class HrReportExportWriter
         }
         return string.Empty;
     }
+
+    private static Stream OpenLogoStream() =>
+        typeof(HrReportExportWriter).Assembly.GetManifestResourceStream("MIS.Infrastructure.Assets.mis-logo.png")
+        ?? throw new InvalidOperationException("The MIS report logo resource is missing.");
 
     /// <summary>
     /// PDFsharp maps Unicode code points to glyphs but does not apply OpenType Arabic shaping or

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { authService } from '../features/auth/services/authService';
 import type { AuthResponse, AuthenticatedUser, LoginRequest } from '../features/auth/types/auth';
-import { clearStoredAuth, getStoredAuth, persistAuth } from '../utils/storage';
+import { clearStoredAuth, getStoredAuth, persistAuth, updateStoredAuth } from '../utils/storage';
 
 interface AuthContextValue {
   accessToken: string | null;
@@ -9,6 +9,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (credentials: LoginRequest, rememberMe: boolean) => Promise<void>;
   logout: () => void;
+  updateUser: (user: AuthenticatedUser) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -31,6 +32,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setAuth(null);
   }, []);
 
+  const updateUser = useCallback((user: AuthenticatedUser) => {
+    setAuth((current) => {
+      if (!current) return current;
+      const next = { ...current, user };
+      updateStoredAuth(next);
+      return next;
+    });
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       accessToken: auth?.accessToken ?? null,
@@ -38,8 +48,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isAuthenticated: Boolean(auth?.accessToken),
       login,
       logout,
+      updateUser,
     }),
-    [auth, login, logout],
+    [auth, login, logout, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

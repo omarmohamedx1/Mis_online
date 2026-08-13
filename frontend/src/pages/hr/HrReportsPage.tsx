@@ -23,14 +23,14 @@ import { getApiErrorMessage } from '../../services/apiClient';
 const copyByLanguage = {
   en: {
     title: 'HR Reports', subtitle: 'Filter, preview, and export operational HR data', catalog: 'Report Catalog', selectReport: 'Select a report to configure its filters.', filters: 'Report Filters',
-    search: 'Search', dateFrom: 'Date From', dateTo: 'Date To', employee: 'Employee', department: 'Department', branch: 'Branch', status: 'Status', type: 'Type', source: 'Source', allDepartments: 'All departments', allBranches: 'All branches', allTypes: 'All types', allSources: 'All sources', allStatuses: 'All statuses', inactive: 'Inactive',
+    search: 'Search', dateFrom: 'Date From', dateTo: 'Date To', employee: 'Employee', department: 'Department', status: 'Status', type: 'Type', source: 'Source', allDepartments: 'All departments', allTypes: 'All types', allSources: 'All sources', allStatuses: 'All statuses', inactive: 'Inactive',
     run: 'Run Report', reset: 'Reset Filters', preview: 'Report Preview', generated: 'Generated {date}', rows: '{count} rows', noRows: 'No matching report rows', noRowsHelp: 'Adjust the filters and run the report again.', choose: 'Choose a report from the catalog to begin.',
     excel: 'Export Excel', pdf: 'Export PDF', exporting: 'Preparing export…', exported: 'Report downloaded successfully.', exportError: 'Unable to export the report.', loadCatalogError: 'Unable to load the report catalog.', loadPreviewError: 'Unable to generate the report preview.',
     dateValidation: 'Date To cannot be before Date From.', appliedFilters: 'Applied filters', noFilters: 'No filters applied', clearEmployee: 'Clear selection', retry: 'Try again', page: 'Page {page} of {total}', showing: 'Showing {from}–{to} of {total}', previous: 'Previous page', next: 'Next page',
   },
   ar: {
     title: 'تقارير الموارد البشرية', subtitle: 'فلترة ومعاينة وتصدير بيانات الموارد البشرية التشغيلية', catalog: 'دليل التقارير', selectReport: 'اختر تقريرًا لضبط عوامل التصفية.', filters: 'عوامل تصفية التقرير',
-    search: 'بحث', dateFrom: 'من تاريخ', dateTo: 'إلى تاريخ', employee: 'الموظف', department: 'القسم', branch: 'الفرع', status: 'الحالة', type: 'النوع', source: 'المصدر', allDepartments: 'كل الأقسام', allBranches: 'كل الفروع', allTypes: 'كل الأنواع', allSources: 'كل المصادر', allStatuses: 'كل الحالات', inactive: 'غير نشط',
+    search: 'بحث', dateFrom: 'من تاريخ', dateTo: 'إلى تاريخ', employee: 'الموظف', department: 'القسم', status: 'الحالة', type: 'النوع', source: 'المصدر', allDepartments: 'كل الأقسام', allTypes: 'كل الأنواع', allSources: 'كل المصادر', allStatuses: 'كل الحالات', inactive: 'غير نشط',
     run: 'تشغيل التقرير', reset: 'مسح الفلاتر', preview: 'معاينة التقرير', generated: 'تم الإنشاء {date}', rows: '{count} سجل', noRows: 'لا توجد نتائج مطابقة', noRowsHelp: 'عدّل عوامل التصفية ثم شغّل التقرير مرة أخرى.', choose: 'اختر تقريرًا من الدليل للبدء.',
     excel: 'تصدير Excel', pdf: 'تصدير PDF', exporting: 'جارٍ تجهيز الملف…', exported: 'تم تنزيل التقرير بنجاح.', exportError: 'تعذر تصدير التقرير.', loadCatalogError: 'تعذر تحميل دليل التقارير.', loadPreviewError: 'تعذر إنشاء معاينة التقرير.',
     dateValidation: 'لا يمكن أن يسبق تاريخ النهاية تاريخ البداية.', appliedFilters: 'عوامل التصفية المطبقة', noFilters: 'لم تُطبق عوامل تصفية', clearEmployee: 'مسح الاختيار', retry: 'إعادة المحاولة', page: 'صفحة {page} من {total}', showing: 'عرض {from}–{to} من {total}', previous: 'الصفحة السابقة', next: 'الصفحة التالية',
@@ -48,7 +48,6 @@ const arabicReportNames: Record<string, { name: string; description: string }> =
   'expiring-contracts': { name: 'العقود القريبة من الانتهاء', description: 'العقود المنتهية أو القريبة من تاريخ النهاية.' },
   'expiring-documents': { name: 'المستندات القريبة من الانتهاء', description: 'المستندات المنتهية أو المطلوب تجديدها قريبًا.' },
   'employees-by-department': { name: 'الموظفون حسب القسم', description: 'إجمالي الموظفين مجمعًا حسب القسم.' },
-  'employees-by-branch': { name: 'الموظفون حسب الفرع', description: 'إجمالي الموظفين مجمعًا حسب الفرع.' },
   delegations: { name: 'تقرير التفويضات', description: 'التفويضات الإدارية وفترات سريانها.' },
 };
 
@@ -65,12 +64,12 @@ function selectName(item: MasterDataLookup, language: 'en' | 'ar') {
 }
 
 const statusLabels = {
-  en: { Active: 'Active', Inactive: 'Inactive', OnLeave: 'On Leave', Suspended: 'Suspended', Terminated: 'Terminated', Present: 'Present', Absent: 'Absent', Late: 'Late', Leave: 'On Leave', Holiday: 'Holiday', Weekend: 'Weekend', Pending: 'Pending', Excused: 'Excused', Unexcused: 'Unexcused', Approved: 'Approved', Rejected: 'Rejected', Cancelled: 'Cancelled', Draft: 'Draft', Expired: 'Expired', ExpiringSoon: 'Expiring Soon', Valid: 'Valid', ExcelImport: 'Excel import', Manual: 'Manual', DeviceIntegration: 'Device integration', SystemProcessing: 'System processing' },
-  ar: { Active: 'نشط', Inactive: 'غير نشط', OnLeave: 'في إجازة', Suspended: 'موقوف', Terminated: 'منتهي الخدمة', Present: 'حاضر', Absent: 'غائب', Late: 'متأخر', Leave: 'في إجازة', Holiday: 'عطلة', Weekend: 'إجازة أسبوعية', Pending: 'قيد الانتظار', Excused: 'بعذر', Unexcused: 'بدون عذر', Approved: 'مقبول', Rejected: 'مرفوض', Cancelled: 'ملغي', Draft: 'مسودة', Expired: 'منتهي', ExpiringSoon: 'ينتهي قريبًا', Valid: 'ساري', ExcelImport: 'استيراد Excel', Manual: 'يدوي', DeviceIntegration: 'ربط جهاز البصمة', SystemProcessing: 'معالجة النظام' },
+  en: { Active: 'Active', Inactive: 'Inactive', OnLeave: 'On Leave', Suspended: 'Suspended', Terminated: 'Terminated', Present: 'Present', Absent: 'Absent', Late: 'Late', Leave: 'On Leave', Holiday: 'Holiday', Weekend: 'Weekend', Pending: 'Pending', PendingReview: 'Needs Review', NotApplicable: 'No Deduction', Excluded: 'Excluded from Payroll', Excused: 'Excused', Unexcused: 'Unexcused', Approved: 'Approved', Rejected: 'Rejected', Cancelled: 'Cancelled', Draft: 'Draft', Expired: 'Expired', ExpiringSoon: 'Expiring Soon', Valid: 'Valid', ExcelImport: 'Excel import', Manual: 'Manual', DeviceIntegration: 'Device integration', SystemProcessing: 'System processing' },
+  ar: { Active: 'نشط', Inactive: 'غير نشط', OnLeave: 'في إجازة', Suspended: 'موقوف', Terminated: 'منتهي الخدمة', Present: 'حاضر', Absent: 'غائب', Late: 'متأخر', Leave: 'في إجازة', Holiday: 'عطلة', Weekend: 'إجازة أسبوعية', Pending: 'قيد الانتظار', PendingReview: 'يحتاج مراجعة', NotApplicable: 'بدون خصم', Excluded: 'مستبعد من الخصم', Excused: 'بعذر', Unexcused: 'بدون عذر', Approved: 'مقبول', Rejected: 'مرفوض', Cancelled: 'ملغي', Draft: 'مسودة', Expired: 'منتهي', ExpiringSoon: 'ينتهي قريبًا', Valid: 'ساري', ExcelImport: 'استيراد Excel', Manual: 'يدوي', DeviceIntegration: 'ربط جهاز البصمة', SystemProcessing: 'معالجة النظام' },
 } as const;
 
 function statusOptions(reportCode: string): string[] {
-  if (['employee-list', 'employee-details', 'employees-by-department', 'employees-by-branch'].includes(reportCode)) return ['Active', 'Inactive', 'OnLeave', 'Suspended', 'Terminated'];
+  if (['employee-list', 'employee-details', 'employees-by-department'].includes(reportCode)) return ['Active', 'Inactive', 'OnLeave', 'Suspended', 'Terminated'];
   if (['attendance', 'late-employees', 'overtime'].includes(reportCode)) return ['Present', 'Absent', 'Late', 'Leave', 'Holiday', 'Weekend'];
   if (reportCode === 'absence') return ['Pending', 'Excused', 'Unexcused'];
   if (reportCode === 'leave') return ['Pending', 'Approved', 'Rejected', 'Cancelled'];
@@ -87,7 +86,7 @@ function genericTypeOptions(reportCode: string): string[] {
 }
 
 const arabicReportLabels: Record<string, string> = {
-  employeeNumber: 'رقم الموظف', employeeName: 'اسم الموظف', nameArabic: 'الاسم بالعربية', nameEnglish: 'الاسم بالإنجليزية', nationalId: 'الرقم القومي', dateOfBirth: 'تاريخ الميلاد', gender: 'النوع', maritalStatus: 'الحالة الاجتماعية', mobile: 'رقم الهاتف', email: 'البريد الإلكتروني', city: 'المدينة', department: 'القسم', departmentCode: 'كود القسم', position: 'المسمى الوظيفي', branch: 'الفرع', branchCode: 'كود الفرع', manager: 'المدير المباشر', employmentType: 'نوع التوظيف', hireDate: 'تاريخ التعيين', status: 'الحالة', contractType: 'نوع العقد', contractStart: 'بداية العقد', contractEnd: 'نهاية العقد', probationEnd: 'نهاية فترة الاختبار', date: 'التاريخ', checkIn: 'وقت الحضور', checkOut: 'وقت الانصراف', workingHours: 'ساعات العمل', lateMinutes: 'دقائق التأخير', earlyLeaveMinutes: 'دقائق الانصراف المبكر', overtimeMinutes: 'دقائق الوقت الإضافي', source: 'المصدر', type: 'النوع', reason: 'السبب', leaveType: 'نوع الإجازة', startDate: 'تاريخ البداية', endDate: 'تاريخ النهاية', days: 'عدد الأيام', requestDate: 'تاريخ الطلب', decision: 'ملاحظات القرار', daysRemaining: 'الأيام المتبقية', documentType: 'نوع المستند', fileName: 'اسم الملف', issueDate: 'تاريخ الإصدار', expiryDate: 'تاريخ الانتهاء', total: 'إجمالي الموظفين', active: 'نشط', inactive: 'غير نشط', delegationNumber: 'رقم التفويض', delegationType: 'نوع التفويض', subject: 'الموضوع', authorizedEntity: 'جهة التفويض', createdAt: 'تاريخ الإنشاء', Search: 'بحث', 'Date From': 'من تاريخ', 'Date To': 'إلى تاريخ', Employee: 'الموظف', Department: 'القسم', Branch: 'الفرع', Status: 'الحالة', Type: 'النوع',
+  employeeNumber: 'رقم الموظف', employeeName: 'اسم الموظف', nameArabic: 'الاسم بالعربية', nameEnglish: 'الاسم بالإنجليزية', nationalId: 'الرقم القومي', dateOfBirth: 'تاريخ الميلاد', gender: 'النوع', maritalStatus: 'الحالة الاجتماعية', mobile: 'رقم الهاتف', email: 'البريد الإلكتروني', city: 'المدينة', department: 'القسم', departmentCode: 'كود القسم', position: 'المسمى الوظيفي', manager: 'المدير المباشر', employmentType: 'نوع التوظيف', hireDate: 'تاريخ التعيين', status: 'الحالة', contractType: 'نوع العقد', contractStart: 'بداية العقد', contractEnd: 'نهاية العقد', probationEnd: 'نهاية فترة الاختبار', date: 'التاريخ', checkIn: 'وقت الحضور', checkOut: 'وقت الانصراف', workingHours: 'ساعات العمل', lateMinutes: 'دقائق التأخير', earlyLeaveMinutes: 'دقائق الانصراف المبكر', overtimeMinutes: 'دقائق الوقت الإضافي', source: 'المصدر', type: 'النوع', payrollImpact: 'التأثير على المرتب', reason: 'السبب', leaveType: 'نوع الإجازة', startDate: 'تاريخ البداية', endDate: 'تاريخ النهاية', days: 'عدد الأيام', requestDate: 'تاريخ الطلب', decision: 'ملاحظات القرار', daysRemaining: 'الأيام المتبقية', documentType: 'نوع المستند', fileName: 'اسم الملف', issueDate: 'تاريخ الإصدار', expiryDate: 'تاريخ الانتهاء', total: 'إجمالي الموظفين', active: 'نشط', inactive: 'غير نشط', delegationNumber: 'رقم التفويض', delegationType: 'نوع التفويض', subject: 'الموضوع', authorizedEntity: 'جهة التفويض', createdAt: 'تاريخ الإنشاء', Search: 'بحث', 'Date From': 'من تاريخ', 'Date To': 'إلى تاريخ', Employee: 'الموظف', Department: 'القسم', Status: 'الحالة', Type: 'النوع',
 };
 
 function reportLabel(key: string, fallback: string, language: 'en' | 'ar'): string {
@@ -117,7 +116,6 @@ export function HrReportsPage() {
   const [filter, setFilter] = useState<HrReportFilter>(emptyHrReportFilter);
   const [preview, setPreview] = useState<HrReportPreview | null>(null);
   const [departments, setDepartments] = useState<MasterDataLookup[]>([]);
-  const [branches, setBranches] = useState<MasterDataLookup[]>([]);
   const [types, setTypes] = useState<MasterDataLookup[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -134,10 +132,10 @@ export function HrReportsPage() {
     setCatalogLoading(true);
     setCatalogError('');
     try {
-      const [items, departmentItems, branchItems] = await Promise.all([
-        hrReportService.getCatalog(), hrMasterDataService.getLookup('departments'), hrMasterDataService.getLookup('branches'),
+      const [items, departmentItems] = await Promise.all([
+        hrReportService.getCatalog(), hrMasterDataService.getLookup('departments'),
       ]);
-      setCatalog(items); setDepartments(departmentItems); setBranches(branchItems);
+      setCatalog(items); setDepartments(departmentItems);
       setSelectedCode((current) => current || items[0]?.code || '');
     } catch (error) { setCatalogError(getApiErrorMessage(error, copy.loadCatalogError)); }
     finally { setCatalogLoading(false); }
@@ -206,7 +204,6 @@ export function HrReportsPage() {
               {supports('dateTo') ? <DateInput error={validationError || undefined} label={copy.dateTo} min={filter.dateFrom || undefined} onChange={(event) => changeFilter('dateTo', event.target.value)} value={filter.dateTo} /> : null}
               {supports('employee') ? <EmployeeSearchSelect includeInactive label={copy.employee} onChange={(employeeId) => changeFilter('employeeId', employeeId)} value={filter.employeeId} /> : null}
               {supports('department') ? <SelectInput label={copy.department} onChange={(event) => changeFilter('departmentId', event.target.value)} value={filter.departmentId}><option value="">{copy.allDepartments}</option>{departments.map((item) => <option key={item.id} value={item.id}>{selectName(item, language)}</option>)}</SelectInput> : null}
-              {supports('branch') ? <SelectInput label={copy.branch} onChange={(event) => changeFilter('branchId', event.target.value)} value={filter.branchId}><option value="">{copy.allBranches}</option>{branches.map((item) => <option key={item.id} value={item.id}>{selectName(item, language)}</option>)}</SelectInput> : null}
               {supports('status') ? <SelectInput label={copy.status} onChange={(event) => changeFilter('status', event.target.value)} value={filter.status}><option value="">{copy.allStatuses}</option>{statusOptions(selectedCode).map((status) => <option key={status} value={status}>{statusLabels[language][status as keyof typeof statusLabels.en]}</option>)}</SelectInput> : null}
               {supports('typeId') && types.length ? <SelectInput label={copy.type} onChange={(event) => changeFilter('typeId', event.target.value)} value={filter.typeId}><option value="">{copy.allTypes}</option>{types.map((item) => <option key={item.id} value={item.id}>{selectName(item, language)}{!item.isActive ? ` (${copy.inactive})` : ''}</option>)}</SelectInput> : null}
               {supports('type') && !supports('typeId') && genericTypes.length ? <SelectInput label={['attendance', 'late-employees', 'overtime'].includes(selectedCode) ? copy.source : copy.type} onChange={(event) => changeFilter('type', event.target.value)} value={filter.type}><option value="">{['attendance', 'late-employees', 'overtime'].includes(selectedCode) ? copy.allSources : copy.allTypes}</option>{genericTypes.map((item) => <option key={item} value={item}>{statusLabels[language][item as keyof typeof statusLabels.en]}</option>)}</SelectInput> : null}

@@ -16,18 +16,17 @@ public sealed class HrReportService : IHrReportService
     private const int MaximumExportRows = 5000;
     private static readonly IReadOnlyCollection<HrReportCatalogItemDto> Catalog =
     [
-        CatalogItem(HrReportCodes.EmployeeList, "Employee List", "Current employee directory and organization assignments.", "search", "employee", "department", "branch", "status"),
-        CatalogItem(HrReportCodes.EmployeeDetails, "Employee Details", "Detailed employee profile without compensation or bank information.", "search", "employee", "department", "branch", "status"),
-        CatalogItem(HrReportCodes.Attendance, "Attendance Report", "Attendance records and calculated working-time values.", "search", "dateFrom", "dateTo", "employee", "department", "branch", "status", "type"),
-        CatalogItem(HrReportCodes.Absence, "Absence Report", "Registered company absences.", "search", "dateFrom", "dateTo", "employee", "department", "branch", "status", "type"),
-        CatalogItem(HrReportCodes.Leave, "Leave Report", "Leave requests and decisions.", "search", "dateFrom", "dateTo", "employee", "department", "branch", "status", "typeId", "type"),
-        CatalogItem(HrReportCodes.LateEmployees, "Late Employees", "Attendance records with calculated late minutes.", "search", "dateFrom", "dateTo", "employee", "department", "branch"),
-        CatalogItem(HrReportCodes.Overtime, "Overtime Report", "Attendance records with approved calculated overtime.", "search", "dateFrom", "dateTo", "employee", "department", "branch"),
-        CatalogItem(HrReportCodes.ExpiringContracts, "Expiring Contracts", "Contracts that have expired recently or are approaching their end date.", "search", "dateFrom", "dateTo", "employee", "department", "branch", "status", "typeId", "type"),
-        CatalogItem(HrReportCodes.ExpiringDocuments, "Expiring Documents", "Employee documents that have expired recently or will expire soon.", "search", "dateFrom", "dateTo", "employee", "department", "branch", "status", "typeId", "type"),
-        CatalogItem(HrReportCodes.EmployeesByDepartment, "Employees by Department", "Employee totals grouped by department.", "search", "department", "branch", "status"),
-        CatalogItem(HrReportCodes.EmployeesByBranch, "Employees by Branch", "Employee totals grouped by branch.", "search", "department", "branch", "status"),
-        CatalogItem(HrReportCodes.Delegations, "Delegations Report", "Administrative delegations and their effective periods.", "search", "dateFrom", "dateTo", "employee", "department", "branch", "status", "typeId", "type")
+        CatalogItem(HrReportCodes.EmployeeList, "Employee List", "Current employee directory and organization assignments.", "search", "employee", "department", "status"),
+        CatalogItem(HrReportCodes.EmployeeDetails, "Employee Details", "Detailed employee profile without compensation or bank information.", "search", "employee", "department", "status"),
+        CatalogItem(HrReportCodes.Attendance, "Attendance Report", "Attendance records and calculated working-time values.", "search", "dateFrom", "dateTo", "employee", "department", "status", "type"),
+        CatalogItem(HrReportCodes.Absence, "Absence Report", "Registered company absences and their reviewed payroll impact.", "search", "dateFrom", "dateTo", "employee", "department", "status", "type"),
+        CatalogItem(HrReportCodes.Leave, "Leave Report", "Leave requests and decisions.", "search", "dateFrom", "dateTo", "employee", "department", "status", "typeId", "type"),
+        CatalogItem(HrReportCodes.LateEmployees, "Late Employees", "Attendance records with calculated late minutes.", "search", "dateFrom", "dateTo", "employee", "department"),
+        CatalogItem(HrReportCodes.Overtime, "Overtime Report", "Attendance records with approved calculated overtime.", "search", "dateFrom", "dateTo", "employee", "department"),
+        CatalogItem(HrReportCodes.ExpiringContracts, "Expiring Contracts", "Contracts that have expired recently or are approaching their end date.", "search", "dateFrom", "dateTo", "employee", "department", "status", "typeId", "type"),
+        CatalogItem(HrReportCodes.ExpiringDocuments, "Expiring Documents", "Employee documents that have expired recently or will expire soon.", "search", "dateFrom", "dateTo", "employee", "department", "status", "typeId", "type"),
+        CatalogItem(HrReportCodes.EmployeesByDepartment, "Employees by Department", "Employee totals grouped by department.", "search", "department", "status"),
+        CatalogItem(HrReportCodes.Delegations, "Delegations Report", "Administrative delegations and their effective periods.", "search", "dateFrom", "dateTo", "employee", "department", "status", "typeId", "type")
     ];
 
     private readonly ApplicationDbContext _dbContext;
@@ -140,7 +139,6 @@ public sealed class HrReportService : IHrReportService
         HrReportCodes.ExpiringContracts => BuildContractsAsync(filter, skip, take, maximumTotal, cancellationToken),
         HrReportCodes.ExpiringDocuments => BuildDocumentsAsync(filter, skip, take, maximumTotal, cancellationToken),
         HrReportCodes.EmployeesByDepartment => BuildDepartmentSummaryAsync(filter, skip, take, maximumTotal, cancellationToken),
-        HrReportCodes.EmployeesByBranch => BuildBranchSummaryAsync(filter, skip, take, maximumTotal, cancellationToken),
         HrReportCodes.Delegations => BuildDelegationsAsync(filter, skip, take, maximumTotal, cancellationToken),
         _ => throw new HrNotFoundException("Report was not found.")
     };
@@ -155,7 +153,7 @@ public sealed class HrReportService : IHrReportService
         var isArabic = ApiTextLocalizer.IsArabic;
         var columns = Columns(
             ("employeeNumber", "Employee ID"), ("employeeName", "Employee Name"),
-            ("department", "Department"), ("position", "Position"), ("branch", "Branch"),
+            ("department", "Department"), ("position", "Position"),
             ("hireDate", "Hire Date"), ("status", "Status"));
         var query = ApplyEmployeeFilters(_dbContext.Employees.AsNoTracking(), filter)
             .OrderBy(item => item.EmployeeNumber)
@@ -171,7 +169,7 @@ public sealed class HrReportService : IHrReportService
             });
         return await PageAsync("Employee List", columns, query, skip, take, maximumTotal, item => Row(
             ("employeeNumber", item.EmployeeNumber), ("employeeName", item.EmployeeName),
-            ("department", item.Department), ("position", item.Position), ("branch", item.Branch),
+            ("department", item.Department), ("position", item.Position),
             ("hireDate", item.HireDate), ("status", item.Status)), cancellationToken);
     }
 
@@ -188,7 +186,7 @@ public sealed class HrReportService : IHrReportService
             ("nameArabic", "Arabic Name"), ("nameEnglish", "English Name"), ("nationalId", "National ID"),
             ("dateOfBirth", "Date of Birth"), ("gender", "Gender"), ("maritalStatus", "Marital Status"),
             ("mobile", "Mobile"), ("email", "Email"), ("city", "City"),
-            ("department", "Department"), ("position", "Position"), ("branch", "Branch"),
+            ("department", "Department"), ("position", "Position"),
             ("manager", "Direct Manager"), ("employmentType", "Employment Type"),
             ("hireDate", "Hire Date"), ("status", "Status"), ("contractType", "Contract Type"),
             ("contractStart", "Contract Start"), ("contractEnd", "Contract End"), ("probationEnd", "Probation End"));
@@ -231,7 +229,7 @@ public sealed class HrReportService : IHrReportService
             ("nameArabic", item.FullNameArabic), ("nameEnglish", item.FullNameEnglish), ("nationalId", item.NationalId),
             ("dateOfBirth", item.DateOfBirth), ("gender", item.Gender), ("maritalStatus", item.MaritalStatus),
             ("mobile", item.MobileNumber), ("email", item.Email), ("city", item.City),
-            ("department", item.Department), ("position", item.Position), ("branch", item.Branch),
+            ("department", item.Department), ("position", item.Position),
             ("manager", item.Manager), ("employmentType", item.EmploymentType), ("hireDate", item.HireDate),
             ("status", item.Status), ("contractType", item.ContractType), ("contractStart", item.ContractStart),
             ("contractEnd", item.ContractEnd), ("probationEnd", item.ProbationEnd)), cancellationToken);
@@ -254,7 +252,7 @@ public sealed class HrReportService : IHrReportService
         };
         var columns = Columns(
             ("date", "Date"), ("employeeNumber", "Employee ID"), ("employeeName", "Employee Name"),
-            ("department", "Department"), ("branch", "Branch"), ("checkIn", "Check In"),
+            ("department", "Department"), ("checkIn", "Check In"),
             ("checkOut", "Check Out"), ("workingHours", "Working Hours"), ("lateMinutes", "Late Minutes"),
             ("earlyLeaveMinutes", "Early Leave Minutes"), ("overtimeMinutes", "Overtime Minutes"),
             ("status", "Status"), ("source", "Source"));
@@ -283,7 +281,7 @@ public sealed class HrReportService : IHrReportService
             });
         return await PageAsync(reportName, columns, projected, skip, take, maximumTotal, item => Row(
             ("date", item.Date), ("employeeNumber", item.EmployeeNumber), ("employeeName", item.EmployeeName),
-            ("department", item.Department), ("branch", item.Branch), ("checkIn", item.CheckIn),
+            ("department", item.Department), ("checkIn", item.CheckIn),
             ("checkOut", item.CheckOut), ("workingHours", decimal.Round(item.WorkingMinutes / 60m, 2)),
             ("lateMinutes", item.LateMinutes), ("earlyLeaveMinutes", item.EarlyLeaveMinutes),
             ("overtimeMinutes", item.OvertimeMinutes), ("status", item.Status), ("source", item.Source)), cancellationToken);
@@ -299,8 +297,9 @@ public sealed class HrReportService : IHrReportService
         var isArabic = ApiTextLocalizer.IsArabic;
         var columns = Columns(
             ("date", "Date"), ("employeeNumber", "Employee ID"), ("employeeName", "Employee Name"),
-            ("department", "Department"), ("branch", "Branch"), ("type", "Type"),
-            ("status", "Status"), ("reason", "Reason"), ("source", "Source"));
+            ("department", "Department"), ("type", "Type"),
+            ("status", "Status"), ("payrollImpact", "Payroll Impact"),
+            ("reason", "Reason"), ("source", "Source"));
         var query = _dbContext.EmployeeAbsences.AsNoTracking().AsQueryable();
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
@@ -331,13 +330,15 @@ public sealed class HrReportService : IHrReportService
                 Branch = item.Employee.Branch == null ? null : isArabic ? item.Employee.Branch.NameArabic ?? item.Employee.Branch.Name : item.Employee.Branch.Name,
                 item.Type,
                 item.Status,
+                item.PayrollImpactStatus,
                 item.Reason,
                 Source = item.AttendanceSource
             });
         return await PageAsync("Absence Report", columns, projected, skip, take, maximumTotal, item => Row(
             ("date", item.Date), ("employeeNumber", item.EmployeeNumber), ("employeeName", item.EmployeeName),
-            ("department", item.Department), ("branch", item.Branch), ("type", item.Type),
-            ("status", item.Status), ("reason", item.Reason), ("source", item.Source)), cancellationToken);
+            ("department", item.Department), ("type", item.Type),
+            ("status", item.Status), ("payrollImpact", item.PayrollImpactStatus),
+            ("reason", item.Reason), ("source", item.Source)), cancellationToken);
     }
 
     private async Task<ReportData> BuildLeaveAsync(
@@ -350,7 +351,7 @@ public sealed class HrReportService : IHrReportService
         var isArabic = ApiTextLocalizer.IsArabic;
         var columns = Columns(
             ("employeeNumber", "Employee ID"), ("employeeName", "Employee Name"),
-            ("department", "Department"), ("branch", "Branch"), ("leaveType", "Leave Type"),
+            ("department", "Department"), ("leaveType", "Leave Type"),
             ("startDate", "Start Date"), ("endDate", "End Date"), ("days", "Days"),
             ("status", "Status"), ("requestDate", "Request Date"), ("reason", "Reason"),
             ("decision", "Decision Notes"));
@@ -400,7 +401,7 @@ public sealed class HrReportService : IHrReportService
             });
         return await PageAsync("Leave Report", columns, projected, skip, take, maximumTotal, item => Row(
             ("employeeNumber", item.EmployeeNumber), ("employeeName", item.EmployeeName),
-            ("department", item.Department), ("branch", item.Branch), ("leaveType", item.LeaveType),
+            ("department", item.Department), ("leaveType", item.LeaveType),
             ("startDate", item.StartDate), ("endDate", item.EndDate), ("days", item.Days),
             ("status", item.Status), ("requestDate", item.RequestDate), ("reason", item.Reason),
             ("decision", item.Decision)), cancellationToken);
@@ -419,7 +420,7 @@ public sealed class HrReportService : IHrReportService
         var to = filter.DateTo ?? today.AddDays(90);
         var columns = Columns(
             ("employeeNumber", "Employee ID"), ("employeeName", "Employee Name"),
-            ("department", "Department"), ("branch", "Branch"), ("contractType", "Contract Type"),
+            ("department", "Department"), ("contractType", "Contract Type"),
             ("startDate", "Start Date"), ("endDate", "End Date"), ("daysRemaining", "Days Remaining"),
             ("status", "Status"));
         var query = _dbContext.EmployeeContracts.AsNoTracking().Where(item => item.ContractEndDate.HasValue &&
@@ -462,7 +463,7 @@ public sealed class HrReportService : IHrReportService
         });
         return await PageAsync("Expiring Contracts", columns, projected, skip, take, maximumTotal, item => Row(
             ("employeeNumber", item.EmployeeNumber), ("employeeName", item.EmployeeName),
-            ("department", item.Department), ("branch", item.Branch), ("contractType", item.ContractType),
+            ("department", item.Department), ("contractType", item.ContractType),
             ("startDate", item.StartDate), ("endDate", item.EndDate),
             ("daysRemaining", item.EndDate.DayNumber - today.DayNumber), ("status", item.Status)), cancellationToken);
     }
@@ -480,7 +481,7 @@ public sealed class HrReportService : IHrReportService
         var to = filter.DateTo ?? today.AddDays(90);
         var columns = Columns(
             ("employeeNumber", "Employee ID"), ("employeeName", "Employee Name"),
-            ("department", "Department"), ("branch", "Branch"), ("documentType", "Document Type"),
+            ("department", "Department"), ("documentType", "Document Type"),
             ("fileName", "File Name"), ("issueDate", "Issue Date"), ("expiryDate", "Expiry Date"),
             ("daysRemaining", "Days Remaining"), ("status", "Status"));
         var query = _dbContext.EmployeeDocuments.AsNoTracking().Where(item => !item.IsDeleted && item.ExpiryDate.HasValue &&
@@ -531,7 +532,7 @@ public sealed class HrReportService : IHrReportService
             var status = days < 0 ? "Expired" : days <= 30 ? "Expiring Soon" : "Valid";
             return Row(
                 ("employeeNumber", item.EmployeeNumber), ("employeeName", item.EmployeeName),
-                ("department", item.Department), ("branch", item.Branch), ("documentType", item.DocumentType),
+                ("department", item.Department), ("documentType", item.DocumentType),
                 ("fileName", item.FileName), ("issueDate", item.IssueDate), ("expiryDate", item.ExpiryDate),
                 ("daysRemaining", days), ("status", status));
         }, cancellationToken);
@@ -613,7 +614,7 @@ public sealed class HrReportService : IHrReportService
         var isArabic = ApiTextLocalizer.IsArabic;
         var columns = Columns(
             ("delegationNumber", "Delegation Number"), ("employeeNumber", "Employee ID"),
-            ("employeeName", "Employee Name"), ("department", "Department"), ("branch", "Branch"),
+            ("employeeName", "Employee Name"), ("department", "Department"),
             ("delegationType", "Delegation Type"), ("subject", "Subject"),
             ("authorizedEntity", "Authorized Entity"), ("startDate", "Start Date"),
             ("endDate", "End Date"), ("status", "Status"), ("createdAt", "Created At"));
@@ -663,7 +664,7 @@ public sealed class HrReportService : IHrReportService
         });
         return await PageAsync("Delegations Report", columns, projected, skip, take, maximumTotal, item => Row(
             ("delegationNumber", item.DelegationNumber), ("employeeNumber", item.EmployeeNumber),
-            ("employeeName", item.EmployeeName), ("department", item.Department), ("branch", item.Branch),
+            ("employeeName", item.EmployeeName), ("department", item.Department),
             ("delegationType", item.DelegationType), ("subject", item.Subject),
             ("authorizedEntity", item.AuthorizedEntity), ("startDate", item.StartDate),
             ("endDate", item.EndDate), ("status", item.Status), ("createdAt", item.CreatedAt)), cancellationToken);
@@ -681,7 +682,6 @@ public sealed class HrReportService : IHrReportService
         }
         if (filter.EmployeeId.HasValue) query = query.Where(item => item.Id == filter.EmployeeId.Value);
         if (filter.DepartmentId.HasValue) query = query.Where(item => item.DepartmentId == filter.DepartmentId.Value);
-        if (filter.BranchId.HasValue) query = query.Where(item => item.BranchId == filter.BranchId.Value);
         if (!string.IsNullOrWhiteSpace(filter.Status))
         {
             var status = filter.Status.Trim();
@@ -704,7 +704,6 @@ public sealed class HrReportService : IHrReportService
         }
         if (filter.EmployeeId.HasValue) query = query.Where(item => item.EmployeeId == filter.EmployeeId.Value);
         if (filter.DepartmentId.HasValue) query = query.Where(item => item.Employee.DepartmentId == filter.DepartmentId.Value);
-        if (filter.BranchId.HasValue) query = query.Where(item => item.Employee.BranchId == filter.BranchId.Value);
         if (filter.DateFrom.HasValue) query = query.Where(item => item.AttendanceDate >= filter.DateFrom.Value);
         if (filter.DateTo.HasValue) query = query.Where(item => item.AttendanceDate <= filter.DateTo.Value);
         if (!string.IsNullOrWhiteSpace(filter.Status))
@@ -731,7 +730,7 @@ public sealed class HrReportService : IHrReportService
     {
         if (filter.EmployeeId.HasValue) query = query.Where(Equal(employeeId, filter.EmployeeId.Value));
         if (filter.DepartmentId.HasValue) query = query.Where(Equal(departmentId, filter.DepartmentId.Value));
-        if (filter.BranchId.HasValue) query = query.Where(Equal(branchId, filter.BranchId.Value));
+        _ = branchId; // Kept in the internal signature while legacy branch data remains in the database.
         return query;
     }
 
@@ -789,13 +788,6 @@ public sealed class HrReportService : IHrReportService
                 .Where(item => item.Id == filter.DepartmentId.Value)
                 .Select(item => isArabic ? item.NameArabic ?? item.Name : item.Name)
                 .SingleOrDefaultAsync(cancellationToken) ?? filter.DepartmentId.Value.ToString();
-        }
-        if (filter.BranchId.HasValue)
-        {
-            values[ApiTextLocalizer.Localize("Branch")] = await _dbContext.Branches.AsNoTracking()
-                .Where(item => item.Id == filter.BranchId.Value)
-                .Select(item => isArabic ? item.NameArabic ?? item.Name : item.Name)
-                .SingleOrDefaultAsync(cancellationToken) ?? filter.BranchId.Value.ToString();
         }
         if (filter.TypeId.HasValue)
         {

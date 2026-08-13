@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MIS.Application.Common;
 using MIS.Application.DTOs.Hr;
 using MIS.Application.Interfaces;
+using MIS.Domain.Constants;
 using MIS.Domain.Entities;
 
 namespace MIS.Infrastructure.Persistence.Repositories;
@@ -38,7 +39,10 @@ public sealed class HrAbsenceRepository : IHrAbsenceRepository
                 isArabic ? x.Employee.Department.NameArabic ?? x.Employee.Department.Name : x.Employee.Department.Name,
                 x.AbsenceDate,
                 x.Type,
-                x.Status)).ToListAsync(cancellationToken);
+                x.Status,
+                x.SuggestedDeductionAmount,
+                x.ApprovedDeductionAmount,
+                x.PayrollImpactStatus)).ToListAsync(cancellationToken);
         return new PagedAbsencesDto(items, totalCount, page, pageSize, (int)Math.Ceiling(totalCount / (double)pageSize));
     }
 
@@ -60,11 +64,40 @@ public sealed class HrAbsenceRepository : IHrAbsenceRepository
                 x.Status,
                 x.Notes,
                 x.AttendanceSource,
+                x.SuggestedDeductionAmount,
+                x.ApprovedDeductionAmount,
+                x.PayrollImpactStatus,
+                x.PayrollNotes,
+                x.PayrollReviewedByUser == null ? null : x.PayrollReviewedByUser.Username,
+                x.PayrollReviewedAt,
                 x.CreatedAt,
                 x.UpdatedAt))
             .FirstOrDefaultAsync(cancellationToken);
     }
     public Task<bool> EmployeeExistsAsync(Guid employeeId, CancellationToken cancellationToken) => _dbContext.Employees.AnyAsync(x => x.Id == employeeId, cancellationToken);
+    public Task<bool> EmployeeEligibleOnDateAsync(Guid employeeId, DateOnly date, CancellationToken cancellationToken) =>
+        _dbContext.Employees.AnyAsync(x =>
+            x.Id == employeeId &&
+            (!x.HireDate.HasValue || x.HireDate.Value <= date) &&
+            (!x.TerminationDate.HasValue || x.TerminationDate.Value >= date), cancellationToken);
+    public Task<bool> AbsenceExistsAsync(Guid employeeId, DateOnly date, Guid? excludingId, CancellationToken cancellationToken) =>
+        _dbContext.EmployeeAbsences.AnyAsync(x =>
+            x.EmployeeId == employeeId && x.AbsenceDate == date && x.Id != excludingId, cancellationToken);
+    public Task<bool> HasApprovedLeaveAsync(Guid employeeId, DateOnly date, CancellationToken cancellationToken) =>
+        _dbContext.LeaveRequests.AnyAsync(x =>
+            x.EmployeeId == employeeId && x.Status == LeaveRequestStatuses.Approved &&
+            x.StartDate <= date && x.EndDate >= date, cancellationToken);
+    public Task<bool> HasConflictingAttendanceAsync(Guid employeeId, DateOnly date, CancellationToken cancellationToken) =>
+        _dbContext.AttendanceRecords.AnyAsync(x =>
+            x.EmployeeId == employeeId && x.AttendanceDate == date && !x.IsDeleted &&
+            (x.Status != AttendanceValues.AbsentStatus || x.CheckIn != null || x.CheckOut != null ||
+             _dbContext.AttendancePunches.Any(punch => punch.AttendanceRecordId == x.Id)), cancellationToken);
+    public Task<decimal?> GetBasicSalaryOnDateAsync(Guid employeeId, DateOnly date, CancellationToken cancellationToken) =>
+        _dbContext.EmployeeCompensations.AsNoTracking()
+            .Where(x => x.EmployeeId == employeeId && x.EffectiveFrom <= date && (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= date))
+            .OrderByDescending(x => x.EffectiveFrom)
+            .Select(x => (decimal?)x.BasicSalary)
+            .FirstOrDefaultAsync(cancellationToken);
     public void Add(EmployeeAbsence absence) => _dbContext.EmployeeAbsences.Add(absence);
     public void Remove(EmployeeAbsence absence) => _dbContext.EmployeeAbsences.Remove(absence);
     public Task SaveChangesAsync(CancellationToken cancellationToken) => _dbContext.SaveChangesAsync(cancellationToken);

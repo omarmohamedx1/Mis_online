@@ -13,7 +13,7 @@ export function ProtectedRoute({ department }: ProtectedRouteProps) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (department && user?.department !== department) {
+  if (department && user?.department !== department && !user?.roles.includes('Admin')) {
     return <Navigate to="/unauthorized" replace />;
   }
 

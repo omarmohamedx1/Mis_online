@@ -77,6 +77,7 @@ public sealed class HrDelegationService : IHrDelegationService
     {
         ValidateDates(request.StartDate, request.EndDate);
         var employee = await GetActiveEmployeeAsync(request.EmployeeId, cancellationToken);
+        ValidateEmployeeDates(employee, request.StartDate, request.EndDate);
         var type = await GetActiveTypeAsync(request.DelegationTypeId, cancellationToken);
         var number = string.IsNullOrWhiteSpace(request.DelegationNumber)
             ? $"DEL-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}"[..23].ToUpperInvariant()
@@ -117,8 +118,8 @@ public sealed class HrDelegationService : IHrDelegationService
     {
         ValidateDates(request.StartDate, request.EndDate);
         var entity = await GetTrackedAsync(id, cancellationToken);
-        if (request.EmployeeId != entity.EmployeeId)
-            await GetActiveEmployeeAsync(request.EmployeeId, cancellationToken);
+        var employee = await GetActiveEmployeeAsync(request.EmployeeId, cancellationToken);
+        ValidateEmployeeDates(employee, request.StartDate, request.EndDate);
         if (request.DelegationTypeId != entity.DelegationTypeId)
             await GetActiveTypeAsync(request.DelegationTypeId, cancellationToken);
         var oldValue = Snapshot(entity);
@@ -314,6 +315,14 @@ public sealed class HrDelegationService : IHrDelegationService
     {
         if (startDate.Year < 1900) throw new HrValidationException("Start date is required.");
         if (endDate < startDate) throw new HrValidationException("End date cannot be before start date.");
+    }
+
+    private static void ValidateEmployeeDates(Employee employee, DateOnly startDate, DateOnly endDate)
+    {
+        if (employee.HireDate.HasValue && startDate < employee.HireDate.Value)
+            throw new HrValidationException("Delegation cannot start before the employee hire date.");
+        if (employee.TerminationDate.HasValue && endDate > employee.TerminationDate.Value)
+            throw new HrValidationException("Delegation cannot extend beyond the employee termination date.");
     }
 
     private static void ValidateFilter(DelegationFilterDto filter)

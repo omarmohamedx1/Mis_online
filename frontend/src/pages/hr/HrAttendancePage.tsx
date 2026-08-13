@@ -125,7 +125,7 @@ function AttendanceForm({ record, onClose, onSaved }: AttendanceFormProps) {
 function DetailsModal({ details, onClose }: { details: AttendanceDetails; onClose: () => void }) {
   const { language, t } = useLocalization();
   const rows: Array<[TranslationKey, React.ReactNode]> = [
-    ['employee', `${details.employeeNumber} — ${details.employeeName}`], ['department', details.departmentName], ['branch', details.branchName ?? '—'],
+    ['employee', `${details.employeeNumber} — ${details.employeeName}`], ['department', details.departmentName],
     ['attendanceDate', displayDate(details.attendanceDate, language)], ['checkIn', displayDateTime(details.checkIn, language)], ['checkOut', displayDateTime(details.checkOut, language)],
     ['workingHours', details.workingHours], ['lateMinutes', details.lateMinutes], ['earlyLeaveMinutes', details.earlyLeaveMinutes], ['overtimeMinutes', details.overtimeMinutes],
     ['attendanceSource', t(sourceLabels[details.source])], ['notes', details.notes || '—'],

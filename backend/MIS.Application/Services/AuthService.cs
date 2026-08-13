@@ -31,7 +31,7 @@ public sealed class AuthService : IAuthService
             return AuthResult.Failure(InvalidCredentialsMessage);
         }
 
-        var user = await _userRepository.FindByUsernameOrEmailAsync(usernameOrEmail, cancellationToken);
+        var user = await _userRepository.FindByLoginIdentifierAsync(usernameOrEmail, cancellationToken);
 
         if (user is null || !user.IsActive)
         {
@@ -67,6 +67,8 @@ public sealed class AuthService : IAuthService
         var authenticatedUser = new AuthenticatedUserDto(
             user.Id,
             user.Username,
+            user.Email,
+            user.LoginCode,
             user.FullName,
             user.Department.Code,
             primaryRole,

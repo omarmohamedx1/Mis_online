@@ -16,8 +16,9 @@ public sealed class User
         ArgumentException.ThrowIfNullOrWhiteSpace(fullName);
 
         Id = Guid.NewGuid();
+        LoginCode = $"USR-{Id:N}"[..12].ToUpperInvariant();
         Username = username.Trim();
-        Email = email.Trim();
+        Email = email.Trim().ToLowerInvariant();
         PasswordHash = passwordHash;
         FullName = fullName.Trim();
         DepartmentId = departmentId;
@@ -28,6 +29,8 @@ public sealed class User
     public Guid Id { get; private set; }
 
     public string Username { get; private set; } = string.Empty;
+
+    public string LoginCode { get; private set; } = string.Empty;
 
     public string Email { get; private set; } = string.Empty;
 
@@ -54,6 +57,13 @@ public sealed class User
         ArgumentException.ThrowIfNullOrWhiteSpace(passwordHash);
 
         PasswordHash = passwordHash;
+        UpdatedAt = updatedAt;
+    }
+
+    public void UpdateEmail(string email, DateTimeOffset updatedAt)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(email);
+        Email = email.Trim().ToLowerInvariant();
         UpdatedAt = updatedAt;
     }
 

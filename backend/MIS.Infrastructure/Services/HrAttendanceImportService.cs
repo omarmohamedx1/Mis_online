@@ -279,6 +279,7 @@ public sealed class HrAttendanceImportService : IHrAttendanceImportService
             processedPreviewRows += rows.Count;
 
             var accepted = rows.Where(row => request.IncludeRowsWithWarnings || !HasMissingPunchWarning(row.CategoriesJson)).ToArray();
+            await EnsureEmployeeLifecycleStillValidAsync(accepted, cancellationToken);
             var existing = await LoadExistingKeysAsync(accepted, cancellationToken);
             var approvedLeaves = await LoadApprovedLeaveKeysAsync(accepted, cancellationToken);
             var now = DateTimeOffset.UtcNow;
@@ -464,7 +465,9 @@ public sealed class HrAttendanceImportService : IHrAttendanceImportService
                 .Select(item => new EmployeeMatch(
                     item.Id,
                     item.EmployeeNumber,
-                    isArabic ? item.FullNameArabic ?? item.FullName : item.FullNameEnglish ?? item.FullName))
+                    isArabic ? item.FullNameArabic ?? item.FullName : item.FullNameEnglish ?? item.FullName,
+                    item.HireDate,
+                    item.TerminationDate))
                 .ToListAsync(cancellationToken);
             foreach (var match in matches)
             {
@@ -507,6 +510,8 @@ public sealed class HrAttendanceImportService : IHrAttendanceImportService
         DateTimeOffset createdAt)
     {
         var rows = new List<AttendanceImportRow>(parsed.Groups.Count);
+        var zone = TimeZoneInfo.FindSystemTimeZoneById(mapping.TimeZoneId);
+        var companyToday = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, zone).DateTime);
         foreach (var group in parsed.Groups)
         {
             var errors = group.Errors.ToList();
@@ -537,6 +542,16 @@ public sealed class HrAttendanceImportService : IHrAttendanceImportService
             else
             {
                 employee = matches[0];
+            }
+
+            if (employee is not null && group.AttendanceDate.HasValue)
+            {
+                if (employee.HireDate.HasValue && group.AttendanceDate.Value < employee.HireDate.Value)
+                    errors.Add("Attendance date is before the employee hire date.");
+                if (employee.TerminationDate.HasValue && group.AttendanceDate.Value > employee.TerminationDate.Value)
+                    errors.Add("Attendance date is after the employee termination date.");
+                if (group.AttendanceDate.Value > companyToday)
+                    errors.Add("Attendance cannot be imported for a future date.");
             }
 
             if (employee is not null && group.AttendanceDate.HasValue && existingAttendance.Contains(new AttendanceKey(employee.Id, group.AttendanceDate.Value)))
@@ -627,6 +642,28 @@ public sealed class HrAttendanceImportService : IHrAttendanceImportService
                 result.Add(new AttendanceKey(leave.EmployeeId, date));
         }
         return result;
+    }
+
+    private async Task EnsureEmployeeLifecycleStillValidAsync(
+        IReadOnlyCollection<AttendanceImportRow> rows,
+        CancellationToken cancellationToken)
+    {
+        var employeeIds = rows.Where(item => item.EmployeeId.HasValue)
+            .Select(item => item.EmployeeId!.Value)
+            .Distinct()
+            .ToArray();
+        var employees = await _dbContext.Employees.AsNoTracking()
+            .Where(item => employeeIds.Contains(item.Id))
+            .Select(item => new { item.Id, item.HireDate, item.TerminationDate })
+            .ToDictionaryAsync(item => item.Id, cancellationToken);
+        foreach (var row in rows)
+        {
+            if (!row.EmployeeId.HasValue || !row.AttendanceDate.HasValue ||
+                !employees.TryGetValue(row.EmployeeId.Value, out var employee) ||
+                (employee.HireDate.HasValue && row.AttendanceDate.Value < employee.HireDate.Value) ||
+                (employee.TerminationDate.HasValue && row.AttendanceDate.Value > employee.TerminationDate.Value))
+                throw new HrConflictException("Employee employment data changed after the attendance preview. Rebuild the preview before confirming.");
+        }
     }
 
     private static ImportedCalculation CalculateImported(
@@ -844,7 +881,12 @@ public sealed class HrAttendanceImportService : IHrAttendanceImportService
 
     private static int Pages(int count, int size) => count == 0 ? 0 : (int)Math.Ceiling(count / (double)size);
 
-    private sealed record EmployeeMatch(Guid Id, string EmployeeNumber, string EmployeeName);
+    private sealed record EmployeeMatch(
+        Guid Id,
+        string EmployeeNumber,
+        string EmployeeName,
+        DateOnly? HireDate,
+        DateOnly? TerminationDate);
     private sealed record AttendanceKey(Guid EmployeeId, DateOnly Date);
     private sealed record ImportedCalculation(int WorkingMinutes, int LateMinutes, int EarlyLeaveMinutes, int OvertimeMinutes, string Status);
     private sealed record PreviewProjection(

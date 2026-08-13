@@ -34,6 +34,7 @@ export interface EmployeeEmploymentInformation {
   directManagerId: string | null;
   directManagerName: string | null;
   hireDate: string | null;
+  terminationDate: string | null;
   status: EmployeeStatus;
 }
 
@@ -55,6 +56,7 @@ export interface EmployeeCompensation {
   basicSalary: number;
   allowances: number;
   totalSalary: number;
+  effectiveFrom: string;
   bankName: string | null;
   bankAccount: string | null;
   iban: string | null;
@@ -87,6 +89,7 @@ export interface EmployeeProfile {
   status: EmployeeStatus;
   isActive: boolean;
   hasProfilePhoto: boolean;
+  canManageCompensation: boolean;
   personal: EmployeePersonalInformation;
   contact: EmployeeContactInformation;
   employment: EmployeeEmploymentInformation;
@@ -138,6 +141,7 @@ export interface UpdateEmployeeContractRequest {
 export interface UpdateEmployeeCompensationRequest {
   basicSalary: number;
   allowances: number;
+  effectiveFrom: string;
   bankName: string | null;
   bankAccount: string | null;
   iban: string | null;
@@ -155,4 +159,5 @@ export interface UpdateEmployeeEmergencyContactRequest {
 export interface ChangeEmployeeStatusRequest {
   status: EmployeeStatus;
   reason: string | null;
+  terminationDate: string | null;
 }

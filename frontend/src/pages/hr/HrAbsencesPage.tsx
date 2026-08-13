@@ -1,4 +1,4 @@
-import { CalendarX2, Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { BadgeDollarSign, Ban, CalendarX2, CheckCircle2, Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/common/Button';
@@ -14,11 +14,13 @@ import { useToast } from '../../components/common/Toast';
 import { DateInput } from '../../components/forms/DateInput';
 import { SelectInput } from '../../components/forms/SelectInput';
 import { TextAreaInput } from '../../components/forms/TextAreaInput';
+import { TextInput } from '../../components/forms/TextInput';
+import { useAuth } from '../../context/AuthContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { EmployeeSearchSelect } from '../../features/hr/components/EmployeeSearchSelect';
 import { hrAbsenceService } from '../../features/hr/services/hrAbsenceService';
 import { hrEmployeeService } from '../../features/hr/services/hrEmployeeService';
-import type { AbsenceDetails, AbsenceListItem, AbsenceStatus, PagedAbsences, SaveAbsenceRequest } from '../../features/hr/types/absence';
+import type { AbsenceDetails, AbsenceListItem, AbsenceStatus, PagedAbsences, PayrollImpactStatus, SaveAbsenceRequest } from '../../features/hr/types/absence';
 import type { DepartmentOption } from '../../features/hr/types/employee';
 import type { TranslationKey } from '../../localization/translations';
 import { getApiErrorMessage } from '../../services/apiClient';
@@ -28,6 +30,21 @@ const emptyForm: SaveAbsenceRequest = { employeeId: '', absenceDate: '', type: '
 const statuses: AbsenceStatus[] = ['Pending', 'Excused', 'Unexcused'];
 const statusLabels: Record<AbsenceStatus, TranslationKey> = { Pending: 'pending', Excused: 'excused', Unexcused: 'unexcused' };
 const statusTones: Record<AbsenceStatus, StatusTone> = { Pending: 'warning', Excused: 'success', Unexcused: 'danger' };
+const payrollTones: Record<PayrollImpactStatus, StatusTone> = { NotApplicable: 'neutral', PendingReview: 'warning', Approved: 'success', Excluded: 'info' };
+const payrollCopy = {
+  en: { impact: 'Payroll impact', notApplicable: 'No deduction', pendingReview: 'Needs review', approved: 'Deduction approved', excluded: 'Excluded from payroll', suggested: 'Suggested deduction', final: 'Approved deduction', review: 'Review payroll', approve: 'Approve deduction', exclude: 'Exclude deduction', notes: 'Payroll review notes', reviewer: 'Reviewed by', explanation: 'The suggestion is calculated from the basic salary for the absence date ÷ 30. Nothing is deducted until an authorized HR manager approves it.', noSalary: 'No active basic salary was found for this date; review the amount before approval.', reviewError: 'Unable to save the payroll review.' },
+  ar: { impact: 'التأثير على المرتب', notApplicable: 'بدون خصم', pendingReview: 'يحتاج مراجعة', approved: 'تم اعتماد الخصم', excluded: 'مستبعد من الخصم', suggested: 'الخصم المقترح', final: 'الخصم المعتمد', review: 'مراجعة الخصم', approve: 'اعتماد الخصم', exclude: 'استبعاد الخصم', notes: 'ملاحظات مراجعة المرتب', reviewer: 'تمت المراجعة بواسطة', explanation: 'يُحسب المقترح من الراتب الأساسي الساري في تاريخ الغياب ÷ 30، ولا يُخصم أي مبلغ إلا بعد اعتماد مدير الموارد البشرية.', noSalary: 'لا يوجد راتب أساسي سارٍ في هذا التاريخ؛ راجع المبلغ قبل الاعتماد.', reviewError: 'تعذر حفظ مراجعة تأثير الغياب على المرتب.' },
+} as const;
+
+function payrollLabel(status: PayrollImpactStatus, language: 'en' | 'ar'): string {
+  const text = payrollCopy[language];
+  return status === 'PendingReview' ? text.pendingReview : status === 'Approved' ? text.approved : status === 'Excluded' ? text.excluded : text.notApplicable;
+}
+
+function money(value: number | null, language: 'en' | 'ar'): string {
+  if (value === null) return '—';
+  return new Intl.NumberFormat(language === 'ar' ? 'ar-EG' : 'en-EG', { currency: 'EGP', style: 'currency', maximumFractionDigits: 2 }).format(value);
+}
 
 function displayDate(value: string, language: 'en' | 'ar'): string {
   return new Intl.DateTimeFormat(language === 'ar' ? 'ar-EG' : 'en-GB', { dateStyle: 'medium' }).format(new Date(`${value}T12:00:00`));
@@ -94,7 +111,7 @@ function AbsenceForm({ absence, onClose, onSaved }: { absence: AbsenceDetails | 
       <form className="space-y-5" id={formId} onSubmit={submit}>
         <FormError message={error} />
         <EmployeeSearchSelect
-          includeInactive
+          includeInactive={Boolean(absence)}
           initialSelection={initialEmployee}
           label={t('employee')}
           onChange={(employeeId) => setForm((current) => ({ ...current, employeeId }))}
@@ -120,6 +137,9 @@ function DetailField({ label, value, wide = false }: { label: string; value: Rea
 
 function DetailsModal({ absence, onClose }: { absence: AbsenceDetails; onClose: () => void }) {
   const { language, t } = useLocalization();
+  const { user } = useAuth();
+  const text = payrollCopy[language];
+  const canReviewPayroll = user?.roles.includes('HrManager') ?? false;
   return (
     <Modal footer={<Button fullWidth={false} onClick={onClose}>{t('close')}</Button>} onClose={onClose} open title={t('absenceDetails')}>
       <dl className="grid gap-4 sm:grid-cols-2">
@@ -132,13 +152,46 @@ function DetailsModal({ absence, onClose }: { absence: AbsenceDetails; onClose: 
         <DetailField label={t('reason')} value={absence.reason || t('unknown')} />
         <DetailField label={t('attendanceSource')} value={t('manual')} />
         <DetailField label={t('notes')} value={absence.notes || '—'} wide />
+        {canReviewPayroll ? <><DetailField label={text.impact} value={<StatusBadge tone={payrollTones[absence.payrollImpactStatus]}>{payrollLabel(absence.payrollImpactStatus, language)}</StatusBadge>} /><DetailField label={text.suggested} value={money(absence.suggestedDeductionAmount, language)} /><DetailField label={text.final} value={money(absence.approvedDeductionAmount, language)} /><DetailField label={text.reviewer} value={absence.payrollReviewedByUsername || '—'} />{absence.payrollNotes ? <DetailField label={text.notes} value={absence.payrollNotes} wide /> : null}</> : null}
       </dl>
     </Modal>
   );
 }
 
+function PayrollReviewModal({ absence, onClose, onSaved }: { absence: AbsenceDetails; onClose: () => void; onSaved: () => void }) {
+  const { language } = useLocalization();
+  const toast = useToast();
+  const text = payrollCopy[language];
+  const [amount, setAmount] = useState(String(absence.approvedDeductionAmount ?? absence.suggestedDeductionAmount));
+  const [notes, setNotes] = useState(absence.payrollNotes ?? '');
+  const [saving, setSaving] = useState<'Approve' | 'Exclude' | null>(null);
+  const [error, setError] = useState('');
+
+  async function submit(decision: 'Approve' | 'Exclude') {
+    const parsedAmount = Number(amount);
+    if (decision === 'Approve' && (!Number.isFinite(parsedAmount) || parsedAmount < 0)) { setError(text.reviewError); return; }
+    setSaving(decision); setError('');
+    try {
+      await hrAbsenceService.reviewPayrollImpact(absence.id, { decision, approvedDeductionAmount: decision === 'Approve' ? parsedAmount : null, notes });
+      toast.success(decision === 'Approve' ? text.approved : text.excluded);
+      onSaved();
+    } catch (requestError) { setError(getApiErrorMessage(requestError, text.reviewError)); }
+    finally { setSaving(null); }
+  }
+
+  return <Modal closeOnBackdrop={!saving} closeOnEscape={!saving} footer={<><Button disabled={Boolean(saving)} fullWidth={false} onClick={onClose} variant="outline">{language === 'ar' ? 'إلغاء' : 'Cancel'}</Button><Button disabled={Boolean(saving)} fullWidth={false} leftIcon={<Ban className="h-4 w-4" />} onClick={() => void submit('Exclude')} variant="outline">{text.exclude}</Button><Button fullWidth={false} isLoading={saving === 'Approve'} leftIcon={<CheckCircle2 className="h-4 w-4" />} onClick={() => void submit('Approve')}>{text.approve}</Button></>} hideCloseButton={Boolean(saving)} onClose={onClose} open title={text.review}>
+    <div className="space-y-5">
+      <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-900"><div className="flex gap-3"><BadgeDollarSign className="mt-0.5 h-5 w-5 flex-none" /><p>{text.explanation}</p></div>{absence.suggestedDeductionAmount === 0 ? <p className="mt-2 font-bold text-amber-800">{text.noSalary}</p> : null}</div>
+      <FormError message={error} />
+      <TextInput label={text.final} min={0} onChange={(event) => setAmount(event.target.value)} required step="0.01" type="number" value={amount} />
+      <TextAreaInput label={text.notes} maxLength={1000} onChange={(event) => setNotes(event.target.value)} rows={4} value={notes} />
+    </div>
+  </Modal>;
+}
+
 export function HrAbsencesPage() {
   const { language, t } = useLocalization();
+  const { user } = useAuth();
   const toast = useToast();
   const [searchParams] = useSearchParams();
   const [data, setData] = useState(emptyPage);
@@ -153,6 +206,7 @@ export function HrAbsencesPage() {
   const [error, setError] = useState('');
   const [formRecord, setFormRecord] = useState<AbsenceDetails | null | undefined>(undefined);
   const [details, setDetails] = useState<AbsenceDetails | null>(null);
+  const [payrollReview, setPayrollReview] = useState<AbsenceDetails | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AbsenceListItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -182,11 +236,12 @@ export function HrAbsencesPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  async function openRecord(item: AbsenceListItem, mode: 'view' | 'edit') {
+  async function openRecord(item: AbsenceListItem, mode: 'view' | 'edit' | 'payroll') {
     try {
       const record = await hrAbsenceService.getAbsence(item.id);
       if (mode === 'view') setDetails(record);
-      else setFormRecord(record);
+      else if (mode === 'edit') setFormRecord(record);
+      else setPayrollReview(record);
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, t('loadAbsenceError')));
     }
@@ -208,7 +263,8 @@ export function HrAbsencesPage() {
   }
 
   const hasFilters = Boolean(search || departmentId || date || status !== 'all');
-  const headings = useMemo(() => [t('employeeId'), t('employee'), t('department'), t('date'), t('status'), t('actions')], [t]);
+  const canReviewPayroll = user?.roles.includes('HrManager') ?? false;
+  const headings = useMemo(() => [t('employeeId'), t('employee'), t('department'), t('date'), t('status'), payrollCopy[language].impact, t('actions')], [language, t]);
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -257,9 +313,11 @@ export function HrAbsencesPage() {
                       <td className="px-5 py-4 text-sm text-slate-600">{item.departmentName}</td>
                       <td className="px-5 py-4 text-sm text-slate-600">{displayDate(item.absenceDate, language)}</td>
                       <td className="px-5 py-4"><StatusBadge tone={statusTones[item.status]}>{t(statusLabels[item.status])}</StatusBadge></td>
+                      <td className="px-5 py-4"><div className="space-y-1"><StatusBadge tone={payrollTones[item.payrollImpactStatus]}>{payrollLabel(item.payrollImpactStatus, language)}</StatusBadge>{canReviewPayroll && item.payrollImpactStatus === 'Approved' ? <p className="text-xs font-bold text-emerald-700">{money(item.approvedDeductionAmount, language)}</p> : canReviewPayroll && item.payrollImpactStatus === 'PendingReview' ? <p className="text-xs font-semibold text-amber-700">{money(item.suggestedDeductionAmount, language)}</p> : null}</div></td>
                       <td className="px-5 py-4"><div className="flex justify-end gap-1">
                         <button aria-label={t('view')} className="rounded-lg p-2 text-mis-primary hover:bg-mis-pale" onClick={() => void openRecord(item, 'view')} type="button"><Eye className="h-4 w-4" /></button>
                         <button aria-label={t('edit')} className="rounded-lg p-2 text-mis-primary hover:bg-mis-pale" onClick={() => void openRecord(item, 'edit')} type="button"><Pencil className="h-4 w-4" /></button>
+                        {canReviewPayroll && item.status === 'Unexcused' ? <button aria-label={payrollCopy[language].review} className="rounded-lg p-2 text-emerald-700 hover:bg-emerald-50" onClick={() => void openRecord(item, 'payroll')} title={payrollCopy[language].review} type="button"><BadgeDollarSign className="h-4 w-4" /></button> : null}
                         <button aria-label={t('delete')} className="rounded-lg p-2 text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(item)} type="button"><Trash2 className="h-4 w-4" /></button>
                       </div></td>
                     </tr>
@@ -274,6 +332,7 @@ export function HrAbsencesPage() {
 
       {formRecord !== undefined ? <AbsenceForm absence={formRecord} onClose={() => setFormRecord(undefined)} onSaved={() => { setFormRecord(undefined); void load(); }} /> : null}
       {details ? <DetailsModal absence={details} onClose={() => setDetails(null)} /> : null}
+      {payrollReview ? <PayrollReviewModal absence={payrollReview} onClose={() => setPayrollReview(null)} onSaved={() => { setPayrollReview(null); void load(); }} /> : null}
       {deleteTarget ? (
         <Modal
           closeOnBackdrop={!deleting}

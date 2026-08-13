@@ -113,7 +113,7 @@ public sealed class HrAttendanceService : IHrAttendanceService
         CreateManualAttendanceRequest request,
         CancellationToken cancellationToken)
     {
-        await EnsureEmployeeExistsAsync(request.EmployeeId, cancellationToken);
+        await EnsureEmployeeEligibleForDateAsync(request.EmployeeId, request.AttendanceDate, cancellationToken);
         await EnsureDateAvailableAsync(request.EmployeeId, request.AttendanceDate, null, cancellationToken);
         var calculation = await CalculateAsync(
             request.EmployeeId,
@@ -168,7 +168,7 @@ public sealed class HrAttendanceService : IHrAttendanceService
                 item => item.Id == attendanceId && !item.IsDeleted,
                 cancellationToken)
             ?? throw new HrNotFoundException("Attendance record was not found.");
-        await EnsureEmployeeExistsAsync(request.EmployeeId, cancellationToken);
+        await EnsureEmployeeEligibleForDateAsync(request.EmployeeId, request.AttendanceDate, cancellationToken);
         await EnsureDateAvailableAsync(request.EmployeeId, request.AttendanceDate, attendanceId, cancellationToken);
         var oldValue = await GetDetailsAsync(attendanceId, cancellationToken);
         var calculation = await CalculateAsync(
@@ -440,10 +440,29 @@ public sealed class HrAttendanceService : IHrAttendanceService
                     item.EndDate >= attendanceDate,
             cancellationToken);
 
-    private async Task EnsureEmployeeExistsAsync(Guid employeeId, CancellationToken cancellationToken)
+    private async Task EnsureEmployeeEligibleForDateAsync(
+        Guid employeeId,
+        DateOnly attendanceDate,
+        CancellationToken cancellationToken)
     {
-        if (employeeId == Guid.Empty || !await _dbContext.Employees.AnyAsync(item => item.Id == employeeId, cancellationToken))
+        if (employeeId == Guid.Empty || attendanceDate == default)
             throw new HrValidationException("A valid employee is required.");
+        var employee = await _dbContext.Employees.AsNoTracking()
+            .Where(item => item.Id == employeeId)
+            .Select(item => new { item.HireDate, item.TerminationDate })
+            .SingleOrDefaultAsync(cancellationToken)
+            ?? throw new HrValidationException("A valid employee is required.");
+        if (employee.HireDate.HasValue && attendanceDate < employee.HireDate.Value)
+            throw new HrValidationException("Attendance date cannot be before the employee hire date.");
+        if (employee.TerminationDate.HasValue && attendanceDate > employee.TerminationDate.Value)
+            throw new HrValidationException("Attendance date cannot be after the employee termination date.");
+
+        var schedule = await _calendar.GetScheduleAsync(attendanceDate, cancellationToken);
+        var companyToday = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(
+            DateTimeOffset.UtcNow,
+            TimeZoneInfo.FindSystemTimeZoneById(schedule.TimeZoneId)).DateTime);
+        if (attendanceDate > companyToday)
+            throw new HrValidationException("Attendance cannot be recorded for a future date.");
     }
 
     private async Task EnsureDateAvailableAsync(

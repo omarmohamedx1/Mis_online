@@ -13,17 +13,29 @@ public sealed class UserRepository : IUserRepository
         _dbContext = dbContext;
     }
 
-    public Task<User?> FindByUsernameOrEmailAsync(string usernameOrEmail, CancellationToken cancellationToken)
+    public Task<User?> FindByLoginIdentifierAsync(string identifier, CancellationToken cancellationToken)
     {
-        var normalizedLookup = usernameOrEmail.Trim().ToLowerInvariant();
+        var normalizedLookup = identifier.Trim().ToLowerInvariant();
 
         return _dbContext.Users
             .Include(user => user.Department)
             .Include(user => user.UserRoles)
             .ThenInclude(userRole => userRole.Role)
             .FirstOrDefaultAsync(
-                user => user.Username.ToLower() == normalizedLookup || user.Email.ToLower() == normalizedLookup,
+                user => user.Username.ToLower() == normalizedLookup || user.Email.ToLower() == normalizedLookup || user.LoginCode.ToLower() == normalizedLookup,
                 cancellationToken);
+    }
+
+    public Task<User?> FindByIdAsync(Guid id, CancellationToken cancellationToken) => _dbContext.Users
+        .Include(user => user.Department)
+        .Include(user => user.UserRoles)
+        .ThenInclude(userRole => userRole.Role)
+        .SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
+
+    public Task<bool> EmailExistsAsync(string email, Guid excludingUserId, CancellationToken cancellationToken)
+    {
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        return _dbContext.Users.AnyAsync(user => user.Id != excludingUserId && user.Email.ToLower() == normalizedEmail, cancellationToken);
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken)

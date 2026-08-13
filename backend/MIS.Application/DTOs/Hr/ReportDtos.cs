@@ -14,7 +14,6 @@ public static class HrReportCodes
     public const string ExpiringContracts = "expiring-contracts";
     public const string ExpiringDocuments = "expiring-documents";
     public const string EmployeesByDepartment = "employees-by-department";
-    public const string EmployeesByBranch = "employees-by-branch";
     public const string Delegations = "delegations";
 
     public static readonly IReadOnlyCollection<string> All =
@@ -29,7 +28,6 @@ public static class HrReportCodes
         ExpiringContracts,
         ExpiringDocuments,
         EmployeesByDepartment,
-        EmployeesByBranch,
         Delegations
     ];
 }

@@ -10,11 +10,15 @@ export interface LoginFormValues extends LoginRequest {
 export interface AuthenticatedUser {
   id: string;
   username: string;
+  email: string;
+  loginCode: string;
   fullName: string;
   department: string;
   role: string;
   roles: string[];
 }
+
+export interface UserProfile { id: string; loginCode: string; username: string; email: string; fullName: string; department: string; roles: string[]; lastLoginAt?: string }
 
 export interface AuthResponse {
   accessToken: string;

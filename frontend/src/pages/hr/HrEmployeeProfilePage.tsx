@@ -1,4 +1,8 @@
-import { ArrowLeft, ExternalLink, History, Search, ShieldAlert, UserRound } from 'lucide-react';
+import {
+  ArrowLeft, BadgeDollarSign, BriefcaseBusiness, CalendarCheck2, CalendarDays,
+  ContactRound, ExternalLink, FileSignature, Files, HeartHandshake, History,
+  LayoutDashboard, ScrollText, Search, ShieldAlert, UserRound, UserRoundX,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/common/Button';
@@ -46,7 +50,6 @@ import { getApiErrorMessage } from '../../services/apiClient';
 type ProfileTab = 'overview' | 'personal' | 'employment' | 'contract' | 'compensation' | 'emergency' | 'documents' | 'attendance' | 'leaves' | 'absences' | 'delegations' | 'audit';
 
 interface ProfileLookups {
-  branches: MasterDataLookup[];
   contractTypes: MasterDataLookup[];
   departments: MasterDataLookup[];
   employmentTypes: MasterDataLookup[];
@@ -67,6 +70,21 @@ const tabLabels: Record<ProfileTab, TranslationKey> = {
   absences: 'companyAbsences',
   delegations: 'delegations',
   audit: 'profileAudit',
+};
+
+const tabIcons: Record<ProfileTab, ReactNode> = {
+  overview: <LayoutDashboard aria-hidden="true" className="h-4 w-4" />,
+  personal: <ContactRound aria-hidden="true" className="h-4 w-4" />,
+  employment: <BriefcaseBusiness aria-hidden="true" className="h-4 w-4" />,
+  contract: <FileSignature aria-hidden="true" className="h-4 w-4" />,
+  compensation: <BadgeDollarSign aria-hidden="true" className="h-4 w-4" />,
+  emergency: <HeartHandshake aria-hidden="true" className="h-4 w-4" />,
+  documents: <Files aria-hidden="true" className="h-4 w-4" />,
+  attendance: <CalendarCheck2 aria-hidden="true" className="h-4 w-4" />,
+  leaves: <CalendarDays aria-hidden="true" className="h-4 w-4" />,
+  absences: <UserRoundX aria-hidden="true" className="h-4 w-4" />,
+  delegations: <ScrollText aria-hidden="true" className="h-4 w-4" />,
+  audit: <History aria-hidden="true" className="h-4 w-4" />,
 };
 
 const statusLabels: Record<EmployeeStatus, TranslationKey> = {
@@ -149,7 +167,6 @@ function OverviewTab({ profile, reportingLine }: { profile: EmployeeProfile; rep
             <InfoItem label={t('status')} value={<StatusBadge tone={statusTone(profile.status)}>{t(statusLabels[profile.status])}</StatusBadge>} />
             <InfoItem label={t('department')} value={profile.employment.departmentName} />
             <InfoItem label={t('position')} value={profile.employment.positionName} />
-            <InfoItem label={t('branch')} value={profile.employment.branchName} />
             <InfoItem label={t('hireDate')} value={formatDate(profile.employment.hireDate, language)} />
           </dl>
         </Section>
@@ -217,7 +234,8 @@ function PersonalTab({ onUpdated, profile }: { onUpdated: (profile: EmployeeProf
   async function savePersonal(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPersonalError('');
-    if (personal.nationalId && personal.nationalId.trim().length < 5) {
+    const nationalIdDigits = personal.nationalId?.replace(/[\s()-]/g, '') ?? '';
+    if (nationalIdDigits && !/^[0-9٠-٩]{14}$/.test(nationalIdDigits)) {
       setPersonalError(t('nationalIdValidation'));
       return;
     }
@@ -269,7 +287,7 @@ function PersonalTab({ onUpdated, profile }: { onUpdated: (profile: EmployeeProf
           <FormError message={personalError} />
           <TextInput label={t('fullNameArabic')} maxLength={160} name="fullNameArabic" onChange={(event) => setPersonal((current) => ({ ...current, fullNameArabic: event.target.value }))} value={personal.fullNameArabic ?? ''} />
           <TextInput label={t('fullNameEnglish')} maxLength={160} name="fullNameEnglish" onChange={(event) => setPersonal((current) => ({ ...current, fullNameEnglish: event.target.value }))} value={personal.fullNameEnglish ?? ''} />
-          <TextInput label={t('nationalId')} maxLength={32} name="nationalId" onChange={(event) => setPersonal((current) => ({ ...current, nationalId: event.target.value }))} value={personal.nationalId ?? ''} />
+          <TextInput inputMode="numeric" label={t('nationalId')} maxLength={18} name="nationalId" onChange={(event) => setPersonal((current) => ({ ...current, nationalId: event.target.value }))} value={personal.nationalId ?? ''} />
           <DateInput label={t('dateOfBirth')} max={today} name="dateOfBirth" onChange={(event) => setPersonal((current) => ({ ...current, dateOfBirth: event.target.value || null }))} value={personal.dateOfBirth ?? ''} />
           <SelectInput label={t('gender')} name="gender" onChange={(event) => setPersonal((current) => ({ ...current, gender: event.target.value || null }))} value={personal.gender ?? ''}>
             <option value="">{t('selectValue')}</option><option value="Male">{t('male')}</option><option value="Female">{t('female')}</option><option value="Other">{t('other')}</option>
@@ -354,9 +372,6 @@ function EmploymentTab({ lookups, onUpdated, profile }: { lookups: ProfileLookup
         <SelectInput label={t('position')} name="positionId" onChange={(event) => setForm((current) => ({ ...current, positionId: event.target.value || null }))} value={form.positionId ?? ''}>
           <option value="">{t('notAssigned')}</option>{lookups.positions.map((item) => <option disabled={!item.isActive && item.id !== form.positionId} key={item.id} value={item.id}>{lookupLabel(item, language)}{item.isActive ? '' : ` — ${t('inactive')}`}</option>)}
         </SelectInput>
-        <SelectInput label={t('branch')} name="branchId" onChange={(event) => setForm((current) => ({ ...current, branchId: event.target.value || null }))} value={form.branchId ?? ''}>
-          <option value="">{t('notAssigned')}</option>{lookups.branches.map((item) => <option disabled={!item.isActive && item.id !== form.branchId} key={item.id} value={item.id}>{lookupLabel(item, language)}{item.isActive ? '' : ` — ${t('inactive')}`}</option>)}
-        </SelectInput>
         <SelectInput label={t('employmentType')} name="employmentTypeId" onChange={(event) => setForm((current) => ({ ...current, employmentTypeId: event.target.value || null }))} value={form.employmentTypeId ?? ''}>
           <option value="">{t('notAssigned')}</option>{lookups.employmentTypes.map((item) => <option disabled={!item.isActive && item.id !== form.employmentTypeId} key={item.id} value={item.id}>{lookupLabel(item, language)}{item.isActive ? '' : ` — ${t('inactive')}`}</option>)}
         </SelectInput>
@@ -430,15 +445,16 @@ function ContractTab({ contractTypes, onUpdated, profile }: { contractTypes: Mas
 function CompensationTab({ onUpdated, profile }: { onUpdated: (profile: EmployeeProfile) => void; profile: EmployeeProfile }) {
   const { language, t } = useLocalization();
   const toast = useToast();
-  const [form, setForm] = useState<UpdateEmployeeCompensationRequest>({ allowances: profile.compensation?.allowances ?? 0, bankAccount: profile.compensation?.bankAccount ?? null, bankName: profile.compensation?.bankName ?? null, basicSalary: profile.compensation?.basicSalary ?? 0, iban: profile.compensation?.iban ?? null, notes: profile.compensation?.notes ?? null });
+  const today = new Date().toISOString().slice(0, 10);
+  const [form, setForm] = useState<UpdateEmployeeCompensationRequest>({ allowances: profile.compensation?.allowances ?? 0, bankAccount: profile.compensation?.bankAccount ?? null, bankName: profile.compensation?.bankName ?? null, basicSalary: profile.compensation?.basicSalary ?? 0, effectiveFrom: profile.compensation?.effectiveFrom ?? today, iban: profile.compensation?.iban ?? null, notes: profile.compensation?.notes ?? null });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => setForm({ allowances: profile.compensation?.allowances ?? 0, bankAccount: profile.compensation?.bankAccount ?? null, bankName: profile.compensation?.bankName ?? null, basicSalary: profile.compensation?.basicSalary ?? 0, iban: profile.compensation?.iban ?? null, notes: profile.compensation?.notes ?? null }), [profile]);
+  useEffect(() => setForm({ allowances: profile.compensation?.allowances ?? 0, bankAccount: profile.compensation?.bankAccount ?? null, bankName: profile.compensation?.bankName ?? null, basicSalary: profile.compensation?.basicSalary ?? 0, effectiveFrom: profile.compensation?.effectiveFrom ?? today, iban: profile.compensation?.iban ?? null, notes: profile.compensation?.notes ?? null }), [profile, today]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError('');
-    if (form.basicSalary < 0 || form.allowances < 0) { setError(t('salaryValidation')); return; }
+    if (form.basicSalary < 0 || form.allowances < 0 || !form.effectiveFrom) { setError(t('salaryValidation')); return; }
     setSaving(true);
     try {
       const updated = await hrEmployeeProfileService.updateCompensation(profile.id, { ...form, bankAccount: nullable(form.bankAccount ?? ''), bankName: nullable(form.bankName ?? ''), iban: nullable(form.iban ?? ''), notes: nullable(form.notes ?? '') });
@@ -458,6 +474,7 @@ function CompensationTab({ onUpdated, profile }: { onUpdated: (profile: Employee
           {error ? <div className="sm:col-span-2"><FormError message={error} /></div> : null}
           <TextInput label={t('basicSalary')} min={0} name="basicSalary" onChange={(event) => setForm((current) => ({ ...current, basicSalary: Number(event.target.value) || 0 }))} step="0.01" type="number" value={form.basicSalary} />
           <TextInput label={t('allowances')} min={0} name="allowances" onChange={(event) => setForm((current) => ({ ...current, allowances: Number(event.target.value) || 0 }))} step="0.01" type="number" value={form.allowances} />
+          <DateInput label={t('effectiveFrom')} max={today} min={profile.employment.hireDate ?? undefined} name="effectiveFrom" onChange={(event) => setForm((current) => ({ ...current, effectiveFrom: event.target.value }))} required value={form.effectiveFrom} />
           <div className="rounded-xl bg-mis-surface p-4 sm:col-span-2"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('totalSalary')}</p><p className="mt-2 text-2xl font-bold text-mis-navy">{formattedTotal}</p></div>
           <TextInput label={t('bankName')} maxLength={160} name="bankName" onChange={(event) => setForm((current) => ({ ...current, bankName: event.target.value }))} value={form.bankName ?? ''} />
           <TextInput label={t('bankAccount')} maxLength={100} name="bankAccount" onChange={(event) => setForm((current) => ({ ...current, bankAccount: event.target.value }))} value={form.bankAccount ?? ''} />
@@ -602,16 +619,16 @@ function AuditTab({ employeeId }: { employeeId: string }) {
 function StatusChangeModal({ onClose, onUpdated, profile }: { onClose: () => void; onUpdated: (profile: EmployeeProfile) => void; profile: EmployeeProfile }) {
   const { t } = useLocalization();
   const toast = useToast();
-  const [request, setRequest] = useState<ChangeEmployeeStatusRequest>({ reason: null, status: profile.status });
+  const [request, setRequest] = useState<ChangeEmployeeStatusRequest>({ reason: null, status: profile.status, terminationDate: profile.employment.terminationDate });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   async function save() {
     setError('');
-    if (request.status === 'Terminated' && !request.reason?.trim()) { setError(t('terminationReasonRequired')); return; }
+    if (request.status === 'Terminated' && (!request.reason?.trim() || !request.terminationDate)) { setError(t('terminationReasonRequired')); return; }
     setSaving(true);
     try {
-      const updated = await hrEmployeeProfileService.changeStatus(profile.id, { reason: nullable(request.reason ?? ''), status: request.status });
+      const updated = await hrEmployeeProfileService.changeStatus(profile.id, { reason: nullable(request.reason ?? ''), status: request.status, terminationDate: request.status === 'Terminated' ? request.terminationDate : null });
       onUpdated(updated); toast.success(t('statusChangedSuccess')); onClose();
     } catch (requestError) {
       const message = getApiErrorMessage(requestError, t('changeEmployeeStatusError')); setError(message); toast.error(message);
@@ -620,7 +637,7 @@ function StatusChangeModal({ onClose, onUpdated, profile }: { onClose: () => voi
 
   return (
     <Modal closeLabel={t('close')} closeOnBackdrop={!saving} closeOnEscape={!saving} footer={<><Button disabled={saving} fullWidth={false} onClick={onClose} size="md" type="button" variant="outline">{t('cancel')}</Button><Button disabled={request.status === profile.status} fullWidth={false} isLoading={saving} onClick={() => void save()} size="md" type="button">{t('confirmStatusChange')}</Button></>} hideCloseButton={saving} onClose={onClose} open size="sm" title={t('changeEmployeeStatus')}>
-      <div className="space-y-5"><FormError message={error} /><SelectInput label={t('employeeStatus')} name="employeeStatus" onChange={(event) => setRequest((current) => ({ ...current, status: event.target.value as EmployeeStatus }))} value={request.status}>{employeeStatuses.map((status) => <option key={status} value={status}>{t(statusLabels[status])}</option>)}</SelectInput><TextAreaInput hint={request.status === 'Terminated' ? t('terminationWarning') : t('statusReasonHelp')} label={t('reason')} maxLength={500} name="statusReason" onChange={(event) => setRequest((current) => ({ ...current, reason: event.target.value }))} value={request.reason ?? ''} /></div>
+      <div className="space-y-5"><FormError message={error} /><SelectInput label={t('employeeStatus')} name="employeeStatus" onChange={(event) => setRequest((current) => ({ ...current, status: event.target.value as EmployeeStatus, terminationDate: event.target.value === 'Terminated' ? current.terminationDate : null }))} value={request.status}>{employeeStatuses.map((status) => <option key={status} value={status}>{t(statusLabels[status])}</option>)}</SelectInput>{request.status === 'Terminated' ? <DateInput label={t('terminationDate')} max={new Date().toISOString().slice(0, 10)} min={profile.employment.hireDate ?? undefined} name="terminationDate" onChange={(event) => setRequest((current) => ({ ...current, terminationDate: event.target.value || null }))} required value={request.terminationDate ?? ''} /> : null}<TextAreaInput hint={request.status === 'Terminated' ? t('terminationWarning') : t('statusReasonHelp')} label={t('reason')} maxLength={500} name="statusReason" onChange={(event) => setRequest((current) => ({ ...current, reason: event.target.value }))} value={request.reason ?? ''} /></div>
     </Modal>
   );
 }
@@ -637,16 +654,17 @@ export function HrEmployeeProfilePage() {
   const [statusOpen, setStatusOpen] = useState(false);
 
   const requestedTab = searchParams.get('tab');
-  const activeTab: ProfileTab = profileTabs.includes(requestedTab as ProfileTab) ? requestedTab as ProfileTab : 'overview';
+  const requestedTabAllowed = requestedTab !== 'compensation' || profile?.canManageCompensation === true;
+  const activeTab: ProfileTab = profileTabs.includes(requestedTab as ProfileTab) && requestedTabAllowed ? requestedTab as ProfileTab : 'overview';
 
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true); setError('');
     try {
-      const [loadedProfile, line, departments, positions, branches, employmentTypes, contractTypes] = await Promise.all([
-        hrEmployeeProfileService.getProfile(id), hrEmployeeProfileService.getReportingLine(id), hrMasterDataService.getLookup('departments', true), hrMasterDataService.getLookup('positions', true), hrMasterDataService.getLookup('branches', true), hrMasterDataService.getLookup('employment-types', true), hrMasterDataService.getLookup('contract-types', true),
+      const [loadedProfile, line, departments, positions, employmentTypes, contractTypes] = await Promise.all([
+        hrEmployeeProfileService.getProfile(id), hrEmployeeProfileService.getReportingLine(id), hrMasterDataService.getLookup('departments', true), hrMasterDataService.getLookup('positions', true), hrMasterDataService.getLookup('employment-types', true), hrMasterDataService.getLookup('contract-types', true),
       ]);
-      setProfile(loadedProfile); setReportingLine(line); setLookups({ branches, contractTypes, departments, employmentTypes, positions });
+      setProfile(loadedProfile); setReportingLine(line); setLookups({ contractTypes, departments, employmentTypes, positions });
     } catch (requestError) { setError(getApiErrorMessage(requestError, t('loadEmployeeProfileError'))); }
     finally { setLoading(false); }
   }, [id, t]);
@@ -657,7 +675,12 @@ export function HrEmployeeProfilePage() {
     try { setReportingLine(await hrEmployeeProfileService.getReportingLine(updated.id)); } catch { /* The saved profile remains usable if the secondary summary refresh fails. */ }
   }
 
-  const tabs = useMemo(() => profileTabs.map((tab) => ({ id: tab, label: t(tabLabels[tab]) })), [t]);
+  const tabs = useMemo(
+    () => profileTabs
+      .filter((tab) => tab !== 'compensation' || profile?.canManageCompensation)
+      .map((tab) => ({ icon: tabIcons[tab], id: tab, label: t(tabLabels[tab]) })),
+    [profile?.canManageCompensation, t],
+  );
   function changeTab(tab: string) { setSearchParams(tab === 'overview' ? {} : { tab }, { replace: true }); }
 
   if (loading) return <div className="flex min-h-[480px] items-center justify-center"><LoadingSpinner /></div>;
@@ -678,13 +701,13 @@ export function HrEmployeeProfilePage() {
         <div className="min-w-0"><p className="truncate text-lg font-bold text-mis-navy">{profile.displayName}</p><p className="mt-1 truncate text-sm text-slate-500">{profile.employment.positionName || t('notAssigned')} · {profile.employment.departmentName}</p></div>
       </div>
 
-      <div className="mb-6 overflow-hidden rounded-2xl border border-mis-border bg-white shadow-sm"><Tabs ariaLabel={t('employeeProfileTabs')} items={tabs} onChange={changeTab} value={activeTab} /></div>
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-white shadow-sm"><Tabs ariaLabel={t('employeeProfileTabs')} items={tabs} onChange={changeTab} value={activeTab} wrap /></div>
 
       {activeTab === 'overview' ? <OverviewTab profile={profile} reportingLine={reportingLine} /> : null}
       {activeTab === 'personal' ? <PersonalTab onUpdated={(updated) => void updateProfile(updated)} profile={profile} /> : null}
       {activeTab === 'employment' ? <EmploymentTab lookups={lookups} onUpdated={(updated) => void updateProfile(updated)} profile={profile} /> : null}
       {activeTab === 'contract' ? <ContractTab contractTypes={lookups.contractTypes} onUpdated={(updated) => void updateProfile(updated)} profile={profile} /> : null}
-      {activeTab === 'compensation' ? <CompensationTab onUpdated={(updated) => void updateProfile(updated)} profile={profile} /> : null}
+      {activeTab === 'compensation' && profile.canManageCompensation ? <CompensationTab onUpdated={(updated) => void updateProfile(updated)} profile={profile} /> : null}
       {activeTab === 'emergency' ? <EmergencyTab onUpdated={(updated) => void updateProfile(updated)} profile={profile} /> : null}
       {activeTab === 'documents' ? <LinkedRecordsTab profile={profile} tab="documents" /> : null}
       {activeTab === 'attendance' ? <LinkedRecordsTab profile={profile} tab="attendance" /> : null}

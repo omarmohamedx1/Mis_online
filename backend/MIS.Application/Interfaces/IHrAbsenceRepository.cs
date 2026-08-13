@@ -9,6 +9,11 @@ public interface IHrAbsenceRepository
     Task<EmployeeAbsence?> GetTrackedAsync(Guid id, CancellationToken cancellationToken);
     Task<AbsenceDetailsDto?> GetDetailsAsync(Guid id, CancellationToken cancellationToken);
     Task<bool> EmployeeExistsAsync(Guid employeeId, CancellationToken cancellationToken);
+    Task<bool> EmployeeEligibleOnDateAsync(Guid employeeId, DateOnly date, CancellationToken cancellationToken);
+    Task<bool> AbsenceExistsAsync(Guid employeeId, DateOnly date, Guid? excludingId, CancellationToken cancellationToken);
+    Task<bool> HasApprovedLeaveAsync(Guid employeeId, DateOnly date, CancellationToken cancellationToken);
+    Task<bool> HasConflictingAttendanceAsync(Guid employeeId, DateOnly date, CancellationToken cancellationToken);
+    Task<decimal?> GetBasicSalaryOnDateAsync(Guid employeeId, DateOnly date, CancellationToken cancellationToken);
     void Add(EmployeeAbsence absence);
     void Remove(EmployeeAbsence absence);
     Task SaveChangesAsync(CancellationToken cancellationToken);

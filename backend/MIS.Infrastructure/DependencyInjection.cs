@@ -43,6 +43,11 @@ public static class DependencyInjection
         services.AddScoped<IHrReportService, HrReportService>();
         services.AddScoped<IHrAttendanceService, HrAttendanceService>();
         services.AddScoped<IHrAttendanceImportService, HrAttendanceImportService>();
+        services.AddScoped<ICollectionsService, CollectionsService>();
+        services.AddScoped<ICollectionsImportService, CollectionsImportService>();
+        services.AddScoped<ICollectionsAttachmentService, CollectionsAttachmentService>();
+        services.AddScoped<ICollectionsReportService, CollectionsReportService>();
+        services.AddScoped<ICollectionsBrandingService, CollectionsBrandingService>();
         services.AddScoped<HrCalendarService>();
         services.AddScoped<IHrCalendarService>(serviceProvider => serviceProvider.GetRequiredService<HrCalendarService>());
         services.AddScoped<IWorkingCalendarCalculator>(serviceProvider => serviceProvider.GetRequiredService<HrCalendarService>());

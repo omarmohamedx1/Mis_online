@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .field {
+    @apply w-full rounded-xl border border-mis-border bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-mis-blue focus:ring-4 focus:ring-mis-pale;
+  }
+}
+
 :root {
   color: #0a1f33;
   background: #f7f9fc;
@@ -15,6 +21,11 @@
   box-sizing: border-box;
 }
 
+::selection {
+  color: #ffffff;
+  background: #075985;
+}
+
 html {
   min-width: 320px;
 }
@@ -26,8 +37,11 @@ body {
   background: #f7f9fc;
 }
 
-:root { --hr-sidebar-space: 0px; }
-@media (min-width: 1024px) { :root { --hr-sidebar-space: 18rem; } }
+.module-content { padding-inline-start: 0; transition: padding 200ms ease; }
+@media (min-width: 1024px) {
+  .module-shell[data-sidebar-collapsed='false'] .module-content { padding-inline-start: 18rem; }
+  .module-shell[data-sidebar-collapsed='true'] .module-content { padding-inline-start: 5rem; }
+}
 
 [dir='rtl'] .text-left,
 [dir='rtl'] .text-right { text-align: right; }
@@ -47,8 +61,22 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+}
+
+input,
+select,
+textarea {
+  color: #0f172a;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #64748b;
+  opacity: 1;
 }
 
 button:focus-visible,

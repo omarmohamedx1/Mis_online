@@ -123,6 +123,7 @@ public sealed class HrLeaveService : IHrLeaveService
             request.LeaveTypeId,
             request.AttachmentDocumentId,
             cancellationToken);
+        await EnsureEmployeeLifecycleRangeAsync(request.EmployeeId, request.StartDate, request.EndDate, cancellationToken);
         await EnsureNoOverlapAsync(request.EmployeeId, request.StartDate, request.EndDate, null, cancellationToken);
         var numberOfDays = await CountWorkingDaysAsync(request.StartDate, request.EndDate, cancellationToken);
         var now = DateTimeOffset.UtcNow;
@@ -167,6 +168,7 @@ public sealed class HrLeaveService : IHrLeaveService
             request.LeaveTypeId,
             request.AttachmentDocumentId,
             cancellationToken);
+        await EnsureEmployeeLifecycleRangeAsync(request.EmployeeId, request.StartDate, request.EndDate, cancellationToken);
         await EnsureNoOverlapAsync(request.EmployeeId, request.StartDate, request.EndDate, entity.Id, cancellationToken);
         var numberOfDays = await CountWorkingDaysAsync(request.StartDate, request.EndDate, cancellationToken);
         var oldValue = await GetDetailsAsync(entity.Id, cancellationToken);
@@ -208,6 +210,7 @@ public sealed class HrLeaveService : IHrLeaveService
             entity.LeaveTypeId,
             entity.AttachmentDocumentId,
             cancellationToken);
+        await EnsureEmployeeLifecycleRangeAsync(entity.EmployeeId, entity.StartDate, entity.EndDate, cancellationToken);
         await EnsureNoOverlapAsync(entity.EmployeeId, entity.StartDate, entity.EndDate, entity.Id, cancellationToken);
         var recalculatedDays = await CountWorkingDaysAsync(entity.StartDate, entity.EndDate, cancellationToken);
         await EnsureNoRecordedAttendancePunchesAsync(entity, cancellationToken);
@@ -466,6 +469,22 @@ public sealed class HrLeaveService : IHrLeaveService
             item => item.Id == leaveTypeId && item.IsActive,
             cancellationToken);
         return leaveType ?? throw new HrValidationException("An active leave type is required.");
+    }
+
+    private async Task EnsureEmployeeLifecycleRangeAsync(
+        Guid employeeId,
+        DateOnly startDate,
+        DateOnly endDate,
+        CancellationToken cancellationToken)
+    {
+        var employee = await _dbContext.Employees.AsNoTracking()
+            .Where(item => item.Id == employeeId)
+            .Select(item => new { item.HireDate, item.TerminationDate })
+            .SingleAsync(cancellationToken);
+        if (employee.HireDate.HasValue && startDate < employee.HireDate.Value)
+            throw new HrValidationException("Leave cannot start before the employee hire date.");
+        if (employee.TerminationDate.HasValue && endDate > employee.TerminationDate.Value)
+            throw new HrValidationException("Leave cannot extend beyond the employee termination date.");
     }
 
     private async Task EnsureNoOverlapAsync(

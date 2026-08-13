@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { HrLayout } from '../components/layout/HrLayout';
+import { CollectionsLayout } from '../components/layout/CollectionsLayout';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { UnauthorizedPage } from '../pages/UnauthorizedPage';
 import { DepartmentHome } from './DepartmentHome';
@@ -20,9 +21,29 @@ const HrAbsencesPage = lazy(() => import('../pages/hr/HrAbsencesPage').then((mod
 const HrEmployeeDocumentsPage = lazy(() => import('../pages/hr/HrEmployeeDocumentsPage').then((module) => ({ default: module.HrEmployeeDocumentsPage })));
 const HrMasterPage = lazy(() => import('../pages/hr/HrMasterPage').then((module) => ({ default: module.HrMasterPage })));
 const HrAuditPage = lazy(() => import('../pages/hr/HrAuditPage').then((module) => ({ default: module.HrAuditPage })));
+const CollectionsDashboardPage = lazy(() => import('../pages/collections/CollectionsDashboardPage').then((module) => ({ default: module.CollectionsDashboardPage })));
+const CollectionsClientsPage = lazy(() => import('../pages/collections/CollectionsClientsPage').then((module) => ({ default: module.CollectionsClientsPage })));
+const CollectionClientWorkspacePage = lazy(() => import('../pages/collections/CollectionClientWorkspacePage').then((module) => ({ default: module.CollectionClientWorkspacePage })));
+const CollectionCasesPage = lazy(() => import('../pages/collections/CollectionCasesPage').then((module) => ({ default: module.CollectionCasesPage })));
+const CollectionCaseDetailsPage = lazy(() => import('../pages/collections/CollectionCaseDetailsPage').then((module) => ({ default: module.CollectionCaseDetailsPage })));
+const CollectionPromisesPage = lazy(() => import('../pages/collections/CollectionPromisesPage').then((module) => ({ default: module.CollectionPromisesPage })));
+const CollectionPaymentsPage = lazy(() => import('../pages/collections/CollectionPaymentsPage').then((module) => ({ default: module.CollectionPaymentsPage })));
+const CollectionAssignmentsPage = lazy(() => import('../pages/collections/CollectionAssignmentsPage').then((module) => ({ default: module.CollectionAssignmentsPage })));
+const CollectionVisitsPage = lazy(() => import('../pages/collections/CollectionVisitsPage').then((module) => ({ default: module.CollectionVisitsPage })));
+const CollectionComplaintsPage = lazy(() => import('../pages/collections/CollectionComplaintsPage').then((module) => ({ default: module.CollectionComplaintsPage })));
+const CollectionAuditPage = lazy(() => import('../pages/collections/CollectionAuditPage').then((module) => ({ default: module.CollectionAuditPage })));
+const CollectionImportsPage = lazy(() => import('../pages/collections/CollectionImportsPage').then((module) => ({ default: module.CollectionImportsPage })));
+const CollectionsSettingsPage = lazy(() => import('../pages/collections/CollectionsSettingsPage').then((module) => ({ default: module.CollectionsSettingsPage })));
+const CollectionsReportsPage = lazy(() => import('../pages/collections/CollectionsReportsPage').then((module) => ({ default: module.CollectionsReportsPage })));
+const CollectionsBrandingPage = lazy(() => import('../pages/collections/CollectionsBrandingPage').then((module) => ({ default: module.CollectionsBrandingPage })));
+const AccountProfilePage = lazy(() => import('../pages/profile/AccountProfilePage').then((module) => ({ default: module.AccountProfilePage })));
 
 function HrRouteBoundary() {
   return <Suspense fallback={<div className="flex min-h-[420px] items-center justify-center"><LoadingSpinner /></div>}><HrLayout /></Suspense>;
+}
+
+function CollectionsRouteBoundary() {
+  return <Suspense fallback={<div className="flex min-h-[420px] items-center justify-center"><LoadingSpinner /></div>}><CollectionsLayout /></Suspense>;
 }
 
 export function AppRoutes() {
@@ -46,6 +67,28 @@ export function AppRoutes() {
           <Route path="employee-documents" element={<HrEmployeeDocumentsPage />} />
           <Route path="audit" element={<HrAuditPage />} />
           <Route path="master" element={<HrMasterPage />} />
+          <Route path="profile" element={<AccountProfilePage />} />
+        </Route>
+      </Route>
+      <Route element={<ProtectedRoute department="COLLECTIONS" />}>
+        <Route path="/collections" element={<Navigate to="/collections/dashboard" replace />} />
+        <Route path="/collections" element={<CollectionsRouteBoundary />}>
+          <Route path="dashboard" element={<CollectionsDashboardPage />} />
+          <Route path="clients" element={<CollectionsClientsPage />} />
+          <Route path="clients/:id" element={<CollectionClientWorkspacePage />} />
+          <Route path="cases" element={<CollectionCasesPage />} />
+          <Route path="cases/:id" element={<CollectionCaseDetailsPage />} />
+          <Route path="promises" element={<CollectionPromisesPage />} />
+          <Route path="payments" element={<CollectionPaymentsPage />} />
+          <Route path="assignments" element={<CollectionAssignmentsPage />} />
+          <Route path="visits" element={<CollectionVisitsPage />} />
+          <Route path="complaints" element={<CollectionComplaintsPage />} />
+          <Route path="audit" element={<CollectionAuditPage />} />
+          <Route path="imports" element={<CollectionImportsPage />} />
+          <Route path="settings" element={<CollectionsSettingsPage />} />
+          <Route path="reports" element={<CollectionsReportsPage />} />
+          <Route path="branding" element={<CollectionsBrandingPage />} />
+          <Route path="profile" element={<AccountProfilePage />} />
         </Route>
       </Route>
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
