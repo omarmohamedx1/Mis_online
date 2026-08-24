@@ -7,11 +7,28 @@ public sealed class EmployeeDelegation
     private EmployeeDelegation() { }
 
     public EmployeeDelegation(
+        string delegationNumber, Guid employeeId, Guid delegationTypeId, string subject, string? authorizedEntity,
+        DateOnly startDate, DateOnly endDate, string purpose, string? notes, string status,
+        Guid createdByUserId, DateTimeOffset createdAt)
+        : this(delegationNumber, employeeId, delegationTypeId, subject, null, authorizedEntity,
+            null, null, null, "Historical employee", "Historical", "Historical",
+            startDate, endDate, purpose, notes, status, createdByUserId, createdAt)
+    {
+    }
+
+    public EmployeeDelegation(
         string delegationNumber,
         Guid employeeId,
         Guid delegationTypeId,
         string subject,
+        Guid? delegatingEntityId,
         string? authorizedEntity,
+        string? companyRepresentative,
+        string? powerOfAttorneyNumber,
+        int? powerOfAttorneyYear,
+        string employeeNameSnapshot,
+        string employeeNumberSnapshot,
+        string employeeNationalIdSnapshot,
         DateOnly startDate,
         DateOnly endDate,
         string purpose,
@@ -27,7 +44,10 @@ public sealed class EmployeeDelegation
         DelegationNumber = Required(delegationNumber, nameof(delegationNumber), 50).ToUpperInvariant();
         EmployeeId = employeeId;
         DelegationTypeId = delegationTypeId;
-        SetDetails(subject, authorizedEntity, startDate, endDate, purpose, notes, status);
+        EmployeeNameSnapshot = Required(employeeNameSnapshot, nameof(employeeNameSnapshot), 250);
+        EmployeeNumberSnapshot = Required(employeeNumberSnapshot, nameof(employeeNumberSnapshot), 50);
+        EmployeeNationalIdSnapshot = Required(employeeNationalIdSnapshot, nameof(employeeNationalIdSnapshot), 32);
+        SetDetails(subject, delegatingEntityId, authorizedEntity, companyRepresentative, powerOfAttorneyNumber, powerOfAttorneyYear, startDate, endDate, purpose, notes, status);
         CreatedByUserId = createdByUserId;
         CreatedAt = createdAt;
     }
@@ -39,7 +59,15 @@ public sealed class EmployeeDelegation
     public Guid DelegationTypeId { get; private set; }
     public DelegationType DelegationType { get; private set; } = null!;
     public string Subject { get; private set; } = string.Empty;
+    public Guid? DelegatingEntityId { get; private set; }
+    public ClientOrganization? DelegatingEntity { get; private set; }
     public string? AuthorizedEntity { get; private set; }
+    public string? CompanyRepresentative { get; private set; }
+    public string? PowerOfAttorneyNumber { get; private set; }
+    public int? PowerOfAttorneyYear { get; private set; }
+    public string? EmployeeNameSnapshot { get; private set; }
+    public string? EmployeeNumberSnapshot { get; private set; }
+    public string? EmployeeNationalIdSnapshot { get; private set; }
     public DateOnly StartDate { get; private set; }
     public DateOnly EndDate { get; private set; }
     public string Purpose { get; private set; } = string.Empty;
@@ -57,10 +85,13 @@ public sealed class EmployeeDelegation
     public string? CancellationReason { get; private set; }
 
     public void Update(
-        Guid employeeId,
         Guid delegationTypeId,
         string subject,
+        Guid? delegatingEntityId,
         string? authorizedEntity,
+        string? companyRepresentative,
+        string? powerOfAttorneyNumber,
+        int? powerOfAttorneyYear,
         DateOnly startDate,
         DateOnly endDate,
         string purpose,
@@ -70,11 +101,9 @@ public sealed class EmployeeDelegation
         DateTimeOffset updatedAt)
     {
         if (Status == DelegationStatuses.Cancelled) throw new InvalidOperationException("A cancelled delegation cannot be edited.");
-        if (employeeId == Guid.Empty) throw new ArgumentException("Employee is required.", nameof(employeeId));
         if (delegationTypeId == Guid.Empty) throw new ArgumentException("Delegation type is required.", nameof(delegationTypeId));
-        EmployeeId = employeeId;
         DelegationTypeId = delegationTypeId;
-        SetDetails(subject, authorizedEntity, startDate, endDate, purpose, notes, status);
+        SetDetails(subject, delegatingEntityId, authorizedEntity, companyRepresentative, powerOfAttorneyNumber, powerOfAttorneyYear, startDate, endDate, purpose, notes, status);
         UpdatedByUserId = RequiredUser(updatedByUserId, nameof(updatedByUserId));
         UpdatedAt = updatedAt;
     }
@@ -94,7 +123,11 @@ public sealed class EmployeeDelegation
 
     private void SetDetails(
         string subject,
+        Guid? delegatingEntityId,
         string? authorizedEntity,
+        string? companyRepresentative,
+        string? powerOfAttorneyNumber,
+        int? powerOfAttorneyYear,
         DateOnly startDate,
         DateOnly endDate,
         string purpose,
@@ -106,7 +139,12 @@ public sealed class EmployeeDelegation
         if (normalizedStatus == DelegationStatuses.Cancelled)
             throw new ArgumentException("Use the cancel operation to cancel a delegation.", nameof(status));
         Subject = Required(subject, nameof(subject), 250);
-        AuthorizedEntity = Optional(authorizedEntity, 250);
+        DelegatingEntityId = delegatingEntityId == Guid.Empty ? null : delegatingEntityId;
+        AuthorizedEntity = Required(authorizedEntity ?? string.Empty, nameof(authorizedEntity), 250);
+        CompanyRepresentative = Optional(companyRepresentative, 250);
+        PowerOfAttorneyNumber = Optional(powerOfAttorneyNumber, 100);
+        if (powerOfAttorneyYear is < 1900 or > 9999) throw new ArgumentOutOfRangeException(nameof(powerOfAttorneyYear));
+        PowerOfAttorneyYear = powerOfAttorneyYear;
         StartDate = startDate;
         EndDate = endDate;
         Purpose = Required(purpose, nameof(purpose), 2000);

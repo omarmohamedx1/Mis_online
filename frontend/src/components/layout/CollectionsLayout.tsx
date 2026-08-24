@@ -1,4 +1,4 @@
-import { Activity, BarChart3, BriefcaseBusiness, Building2, CalendarCheck, ClipboardList, FileUp, Gauge, Languages, LogOut, MapPinned, Menu, PanelLeftClose, PanelLeftOpen, Route, Settings, UserCircle, WalletCards, X } from 'lucide-react';
+import { Activity, BadgeDollarSign, BarChart3, BriefcaseBusiness, Building2, FileUp, Gauge, Landmark, Languages, LogOut, MapPinned, Menu, PanelLeftClose, PanelLeftOpen, Settings, UserCircle, WalletCards, X } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import misLogo from '../../assets/mis-logo.svg';
@@ -6,12 +6,12 @@ import { useAuth } from '../../context/AuthContext';
 import { useCollectionsLocalization } from '../../features/collections/localization/collectionsTranslations';
 
 const links = [
-  { to: '/collections/dashboard', label: 'overview', icon: Gauge }, { to: '/collections/clients', label: 'clients', icon: Building2 },
-  { to: '/collections/cases', label: 'cases', icon: BriefcaseBusiness }, { to: '/collections/promises', label: 'promises', icon: CalendarCheck },
-  { to: '/collections/payments', label: 'payments', icon: WalletCards }, { to: '/collections/assignments', label: 'assignments', icon: Route },
-  { to: '/collections/visits', label: 'visits', icon: MapPinned }, { to: '/collections/complaints', label: 'complaints', icon: ClipboardList },
+  { to: '/collections/dashboard', label: 'overview', icon: Gauge }, { to: '/banks', label: 'banks', icon: Landmark }, { to: '/collections/installment-companies', label: 'installmentCompanies', icon: BadgeDollarSign }, { to: '/collections/clients', label: 'clients', icon: Building2 },
+  { to: '/collections/cases', label: 'cases', icon: BriefcaseBusiness },
+  { to: '/collections/payments', label: 'payments', icon: WalletCards },
+  { to: '/collections/visits', label: 'visits', icon: MapPinned },
   { to: '/collections/reports', label: 'reports', icon: BarChart3 }, { to: '/collections/audit', label: 'audit', icon: Activity, auditOnly: true },
-  { to: '/collections/imports', label: 'imports', icon: FileUp, operationsOnly: true }, { to: '/collections/branding', label: 'branding', icon: Building2, operationsOnly: true }, { to: '/collections/settings', label: 'settings', icon: Settings, operationsOnly: true },
+  { to: '/collections/imports', label: 'imports', icon: FileUp, operationsOnly: true }, { to: '/collections/settings', label: 'settings', icon: Settings, operationsOnly: true },
 ] as const;
 
 export function CollectionsLayout() {

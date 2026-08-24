@@ -18,6 +18,7 @@ public sealed class DelegationFilterDto
     public Guid? EmployeeId { get; init; }
     public Guid? DepartmentId { get; init; }
     public Guid? DelegationTypeId { get; init; }
+    public Guid? DelegatingEntityId { get; init; }
     [StringLength(24)] public string? Status { get; init; }
     public DateOnly? DateFrom { get; init; }
     public DateOnly? DateTo { get; init; }
@@ -35,6 +36,7 @@ public sealed record DelegationListItemDto(
     Guid DelegationTypeId,
     string DelegationType,
     string Subject,
+    Guid? DelegatingEntityId,
     string? AuthorizedEntity,
     DateOnly StartDate,
     DateOnly EndDate,
@@ -53,7 +55,11 @@ public sealed record DelegationDetailsDto(
     Guid DelegationTypeId,
     string DelegationType,
     string Subject,
+    Guid? DelegatingEntityId,
     string? AuthorizedEntity,
+    string? CompanyRepresentative,
+    string? PowerOfAttorneyNumber,
+    int? PowerOfAttorneyYear,
     DateOnly StartDate,
     DateOnly EndDate,
     string Purpose,
@@ -75,27 +81,34 @@ public sealed record PagedDelegationsDto(
 
 public sealed class CreateDelegationRequest
 {
-    [StringLength(50)] public string? DelegationNumber { get; init; }
     public Guid EmployeeId { get; init; }
-    public Guid DelegationTypeId { get; init; }
-    [Required, StringLength(250, MinimumLength = 2)] public string Subject { get; init; } = string.Empty;
-    [StringLength(250)] public string? AuthorizedEntity { get; init; }
+    public Guid? DelegationTypeId { get; init; }
+    [StringLength(250)] public string? Subject { get; init; }
+    public Guid? DelegatingEntityId { get; init; }
+    [Required, StringLength(250, MinimumLength = 2)] public string AuthorizedEntity { get; init; } = string.Empty;
+    [StringLength(250)] public string? CompanyRepresentative { get; init; }
+    [StringLength(100)] public string? PowerOfAttorneyNumber { get; init; }
+    [Range(1900, 9999)] public int? PowerOfAttorneyYear { get; init; }
     public DateOnly StartDate { get; init; }
     public DateOnly EndDate { get; init; }
-    [Required, StringLength(2000, MinimumLength = 2)] public string Purpose { get; init; } = string.Empty;
+    [Required, StringLength(4000, MinimumLength = 2)] public string Purpose { get; init; } = string.Empty;
     [StringLength(2000)] public string? Notes { get; init; }
     [Required, StringLength(24)] public string Status { get; init; } = HrDelegationStatuses.Draft;
 }
 
 public sealed class UpdateDelegationRequest
 {
-    public Guid EmployeeId { get; init; }
-    public Guid DelegationTypeId { get; init; }
-    [Required, StringLength(250, MinimumLength = 2)] public string Subject { get; init; } = string.Empty;
-    [StringLength(250)] public string? AuthorizedEntity { get; init; }
+    public Guid? EmployeeId { get; init; }
+    public Guid? DelegationTypeId { get; init; }
+    [StringLength(250)] public string? Subject { get; init; }
+    public Guid? DelegatingEntityId { get; init; }
+    [Required, StringLength(250, MinimumLength = 2)] public string AuthorizedEntity { get; init; } = string.Empty;
+    [StringLength(250)] public string? CompanyRepresentative { get; init; }
+    [StringLength(100)] public string? PowerOfAttorneyNumber { get; init; }
+    [Range(1900, 9999)] public int? PowerOfAttorneyYear { get; init; }
     public DateOnly StartDate { get; init; }
     public DateOnly EndDate { get; init; }
-    [Required, StringLength(2000, MinimumLength = 2)] public string Purpose { get; init; } = string.Empty;
+    [Required, StringLength(4000, MinimumLength = 2)] public string Purpose { get; init; } = string.Empty;
     [StringLength(2000)] public string? Notes { get; init; }
     [Required, StringLength(24)] public string Status { get; init; } = HrDelegationStatuses.Draft;
 }
@@ -110,10 +123,13 @@ public sealed record DelegationPrintDto(
     string EmployeeName,
     string EmployeeNumber,
     string? NationalId,
-    string DelegationType,
-    string Subject,
+    string? CompanyRepresentative,
+    string? PowerOfAttorneyNumber,
+    int? PowerOfAttorneyYear,
     string? AuthorizedEntity,
     string Purpose,
     DateOnly StartDate,
     DateOnly EndDate,
     DateTimeOffset CreatedAt);
+
+public sealed record DelegationEntityOptionDto(Guid Id, string NameArabic, string NameEnglish);

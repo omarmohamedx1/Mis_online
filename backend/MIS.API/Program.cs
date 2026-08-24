@@ -30,9 +30,18 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCors(ApiServiceCollectionExtensions.FrontendCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<CollectionOrganizationTypeMiddleware>();
 
 app.MapControllers();
 app.MapGet("/api/health", () => Results.Ok(new { status = "Healthy" })).AllowAnonymous();
+
+// Make the development API address friendly when opened directly in a browser.
+// The frontend remains the owner of the login UI.
+if (app.Environment.IsDevelopment())
+{
+    app.MapGet("/", () => Results.Redirect("http://localhost:5173/login"))
+        .AllowAnonymous();
+}
 
 if (app.Environment.IsDevelopment())
 {

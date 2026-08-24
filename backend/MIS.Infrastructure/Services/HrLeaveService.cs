@@ -8,7 +8,7 @@ using MIS.Infrastructure.Persistence;
 
 namespace MIS.Infrastructure.Services;
 
-public sealed class HrLeaveService : IHrLeaveService
+public sealed partial class HrLeaveService : IHrLeaveService
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IWorkingCalendarCalculator _calendar;

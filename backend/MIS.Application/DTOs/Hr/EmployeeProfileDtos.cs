@@ -8,6 +8,9 @@ public sealed record EmployeeProfileDto(
     string DisplayName,
     string Status,
     bool IsActive,
+    bool IsArchived,
+    DateTimeOffset? ArchivedAt,
+    string? ArchiveReason,
     bool HasProfilePhoto,
     bool CanManageCompensation,
     EmployeePersonalInformationDto Personal,
@@ -48,6 +51,8 @@ public sealed record EmployeeEmploymentInformationDto(
     Guid? DirectManagerId,
     string? DirectManagerName,
     DateOnly? HireDate,
+    string? OperationalRole,
+    DateOnly? FingerprintEnrollmentDate,
     DateOnly? TerminationDate,
     string Status);
 

@@ -671,7 +671,10 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
         employee.EmployeeNumber,
         GetDisplayName(employee),
         employee.Status,
-        employee.IsActive,
+            employee.IsActive,
+            employee.IsArchived,
+            employee.ArchivedAt,
+            employee.ArchiveReason,
         !string.IsNullOrWhiteSpace(employee.ProfilePhotoStorageKey),
         canManageCompensation,
         new EmployeePersonalInformationDto(
@@ -700,6 +703,8 @@ public sealed class HrEmployeeProfileService : IHrEmployeeProfileService
             employee.DirectManagerId,
             employee.DirectManager is null ? null : GetDisplayName(employee.DirectManager),
             employee.HireDate,
+            employee.OperationalRole,
+            employee.FingerprintEnrollmentDate,
             employee.TerminationDate,
             employee.Status),
         contract is null ? null : new EmployeeContractInformationDto(

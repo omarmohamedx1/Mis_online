@@ -3,6 +3,8 @@ import type {
   LeaveBalance,
   LeaveBalanceQuery,
   LeaveEntitlement,
+  LeaveImportReview,
+  LeaveImportResult,
   LeaveRequestDetails,
   LeaveRequestQuery,
   PagedLeaveBalances,
@@ -12,6 +14,22 @@ import type {
 } from '../types/leave';
 
 export const hrLeaveService = {
+  async reviewImport(file: File): Promise<LeaveImportReview> {
+    const body = new FormData(); body.append('file', file);
+    const { data } = await apiClient.post<LeaveImportReview>('/hr/leaves/imports/review', body);
+    return data;
+  },
+
+  async confirmImport(importId: string): Promise<LeaveImportResult> {
+    const { data } = await apiClient.post<LeaveImportResult>(`/hr/leaves/imports/${importId}/confirm`);
+    return data;
+  },
+
+  async downloadImportTemplate(): Promise<void> {
+    const response = await apiClient.get<Blob>('/hr/leaves/imports/template', { responseType: 'blob' });
+    const url = URL.createObjectURL(response.data); const link = document.createElement('a');
+    link.href = url; link.download = 'Leave_Import_Template.xlsx'; link.click(); URL.revokeObjectURL(url);
+  },
   async getPaged(query: LeaveRequestQuery): Promise<PagedLeaveRequests> {
     const { data } = await apiClient.get<PagedLeaveRequests>('/hr/leaves', {
       params: {

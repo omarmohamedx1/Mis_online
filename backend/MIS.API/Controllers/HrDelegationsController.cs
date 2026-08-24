@@ -29,6 +29,10 @@ public sealed class HrDelegationsController : ControllerBase
         CancellationToken cancellationToken)
         => Ok(await _service.GetPagedAsync(filter, cancellationToken));
 
+    [HttpGet("entities")]
+    public async Task<ActionResult<IReadOnlyCollection<DelegationEntityOptionDto>>> GetEntities(CancellationToken cancellationToken)
+        => Ok(await _service.GetEntitiesAsync(cancellationToken));
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<DelegationDetailsDto>> GetDetails(Guid id, CancellationToken cancellationToken)
         => Ok(await _service.GetDetailsAsync(id, cancellationToken));
@@ -94,8 +98,8 @@ public sealed class HrDelegationsController : ControllerBase
         var employeeLabel = isArabic ? "اسم الموظف" : "Employee";
         var employeeNumberLabel = isArabic ? "الرقم الوظيفي" : "Employee ID";
         var nationalIdLabel = isArabic ? "الرقم القومي" : "National ID";
-        var typeLabel = isArabic ? "نوع التفويض" : "Delegation Type";
-        var subjectLabel = isArabic ? "موضوع التفويض" : "Subject";
+        var typeLabel = isArabic ? "يمثلها السيد الأستاذ" : "Company Representative";
+        var subjectLabel = isArabic ? "رقم التوكيل / السنة" : "Power of Attorney No. / Year";
         var entityLabel = isArabic ? "الجهة المفوض إليها" : "Authorized Entity";
         var startLabel = isArabic ? "تاريخ البداية" : "Start Date";
         var endLabel = isArabic ? "تاريخ النهاية" : "End Date";
@@ -143,8 +147,8 @@ public sealed class HrDelegationsController : ControllerBase
               <tr><th>{{employeeLabel}}</th><td>{{Encode(item.EmployeeName)}}</td></tr>
               <tr><th>{{employeeNumberLabel}}</th><td>{{Encode(item.EmployeeNumber)}}</td></tr>
               <tr><th>{{nationalIdLabel}}</th><td>{{nationalId}}</td></tr>
-              <tr><th>{{typeLabel}}</th><td>{{Encode(item.DelegationType)}}</td></tr>
-              <tr><th>{{subjectLabel}}</th><td>{{Encode(item.Subject)}}</td></tr>
+              <tr><th>{{typeLabel}}</th><td>{{Encode(item.CompanyRepresentative ?? "—")}}</td></tr>
+              <tr><th>{{subjectLabel}}</th><td>{{Encode(item.PowerOfAttorneyNumber ?? "—")}} / {{item.PowerOfAttorneyYear?.ToString(culture) ?? "—"}}</td></tr>
               <tr><th>{{entityLabel}}</th><td>{{authorizedEntity}}</td></tr>
               <tr><th>{{startLabel}}</th><td>{{startDate}}</td></tr>
               <tr><th>{{endLabel}}</th><td>{{endDate}}</td></tr>

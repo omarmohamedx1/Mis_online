@@ -1,0 +1,25 @@
+.delegation-paper { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 7mm; background: #fff; color: #050505; font-family: "Traditional Arabic", "Noto Naskh Arabic", Tahoma, Arial, sans-serif; }
+.delegation-border { position: relative; min-height: 283mm; border: 2.2mm solid #174f86; padding: 11mm 14mm 9mm; overflow: hidden; }
+.delegation-logo { display: block; width: 38mm; height: 36mm; object-fit: contain; object-position: center; margin-inline-end: auto; margin-inline-start: 0; }
+.delegation-date { margin: 2mm 0 8mm; text-align: right; font-size: 15pt; font-weight: 700; }
+.delegation-paper h1 { margin: 0 0 13mm; text-align: center; font-size: 21pt; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.delegation-body { font-size: 15.5pt; font-weight: 500; line-height: 1.9; text-align: right; }
+.delegation-body p { margin: 0 0 1.4mm; }
+.delegation-body strong { font-weight: 700; }
+.delegation-authorization { margin-top: 3mm !important; text-align: justify; white-space: pre-wrap; }
+.delegation-signature { margin-top: 11mm; margin-right: 16mm; font-size: 15pt; line-height: 2.1; }
+.delegation-signature p { margin: 0; }
+.delegation-border footer { position: absolute; right: 12mm; bottom: 5mm; left: 12mm; text-align: center; font-size: 9pt; color: #444; }
+.latin-value { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+
+@media screen {
+  .delegation-paper { box-shadow: 0 22px 55px rgba(15, 38, 62, .22); transform-origin: top center; }
+}
+
+@page { size: A4 portrait; margin: 0; }
+@media print {
+  body * { visibility: hidden !important; }
+  .delegation-print-root, .delegation-print-root * { visibility: visible !important; }
+  .delegation-print-root { position: absolute !important; inset: 0 !important; width: 210mm !important; margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  .delegation-paper { width: 210mm !important; height: 297mm !important; min-height: 297mm !important; margin: 0 !important; padding: 7mm !important; box-shadow: none !important; break-after: avoid; break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}

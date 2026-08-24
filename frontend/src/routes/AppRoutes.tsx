@@ -36,6 +36,19 @@ const CollectionImportsPage = lazy(() => import('../pages/collections/Collection
 const CollectionsSettingsPage = lazy(() => import('../pages/collections/CollectionsSettingsPage').then((module) => ({ default: module.CollectionsSettingsPage })));
 const CollectionsReportsPage = lazy(() => import('../pages/collections/CollectionsReportsPage').then((module) => ({ default: module.CollectionsReportsPage })));
 const CollectionsBrandingPage = lazy(() => import('../pages/collections/CollectionsBrandingPage').then((module) => ({ default: module.CollectionsBrandingPage })));
+const BanksPage = lazy(() => import('../pages/banks/BanksPage').then((module) => ({ default: module.BanksPage })));
+const InstallmentCompaniesPage = lazy(() => import('../pages/banks/InstallmentCompaniesPage').then((module) => ({ default: module.InstallmentCompaniesPage })));
+const BankWorkspaceLayout = lazy(() => import('../pages/banks/BankWorkspaceLayout').then((module) => ({ default: module.BankWorkspaceLayout })));
+const BankWorkspaceSectionPage = lazy(() => import('../pages/banks/BankWorkspaceSectionPage').then((module) => ({ default: module.BankWorkspaceSectionPage })));
+const BankPortfolioImportPage = lazy(() => import('../pages/banks/BankPortfolioImportPage').then((module) => ({ default: module.BankPortfolioImportPage })));
+const BankPortfolioManagementPage = lazy(() => import('../pages/banks/BankPortfolioManagementPage').then((module) => ({ default: module.BankPortfolioManagementPage })));
+const BankCaseDistributionPage = lazy(() => import('../pages/banks/BankCaseDistributionPage').then((module) => ({ default: module.BankCaseDistributionPage })));
+const BankCaseActivityCenterPage = lazy(() => import('../pages/banks/BankCaseActivityCenterPage').then((module) => ({ default: module.BankCaseActivityCenterPage })));
+const BankPtpCenterPage = lazy(() => import('../pages/banks/BankPtpCenterPage').then((module) => ({ default: module.BankPtpCenterPage })));
+const BankVisitsManagementPage = lazy(() => import('../pages/banks/BankVisitsManagementPage').then((module) => ({ default: module.BankVisitsManagementPage })));
+const BankDcrPage = lazy(() => import('../pages/banks/BankDcrPage').then((module) => ({ default: module.BankDcrPage })));
+const BankComplaintsManagementPage = lazy(() => import('../pages/banks/BankComplaintsManagementPage').then((module) => ({ default: module.BankComplaintsManagementPage })));
+const BankArchivePage = lazy(() => import('../pages/banks/BankArchivePage').then((module) => ({ default: module.BankArchivePage })));
 const AccountProfilePage = lazy(() => import('../pages/profile/AccountProfilePage').then((module) => ({ default: module.AccountProfilePage })));
 
 function HrRouteBoundary() {
@@ -71,9 +84,43 @@ export function AppRoutes() {
         </Route>
       </Route>
       <Route element={<ProtectedRoute department="COLLECTIONS" />}>
+        <Route element={<CollectionsRouteBoundary />}>
+          <Route path="/banks" element={<BanksPage />} />
+          <Route path="/installment-companies/:companyId" element={<BankWorkspaceLayout />}>
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="import" element={<BankPortfolioImportPage />} />
+            <Route path="portfolio" element={<BankPortfolioManagementPage />} />
+            <Route path="distribution" element={<BankCaseDistributionPage />} />
+            <Route path="activity" element={<BankCaseActivityCenterPage />} />
+            <Route path="ptp" element={<BankPtpCenterPage />} />
+            <Route path="visits" element={<BankVisitsManagementPage />} />
+            <Route path="dcr" element={<BankDcrPage />} />
+            <Route path="complaints" element={<BankComplaintsManagementPage />} />
+            <Route path="archive" element={<BankArchivePage />} />
+            <Route path="overview" element={<BankWorkspaceSectionPage />} />
+            <Route path="*" element={<Navigate to="overview" replace />} />
+          </Route>
+          <Route path="/banks/:bankId" element={<BankWorkspaceLayout />}>
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="import" element={<BankPortfolioImportPage />} />
+            <Route path="portfolio" element={<BankPortfolioManagementPage />} />
+            <Route path="distribution" element={<BankCaseDistributionPage />} />
+            <Route path="activity" element={<BankCaseActivityCenterPage />} />
+            <Route path="ptp" element={<BankPtpCenterPage />} />
+            <Route path="visits" element={<BankVisitsManagementPage />} />
+            <Route path="dcr" element={<BankDcrPage />} />
+            <Route path="complaints" element={<BankComplaintsManagementPage />} />
+            <Route path="archive" element={<BankArchivePage />} />
+            {['overview'].map(section => (
+              <Route key={section} path={section} element={<BankWorkspaceSectionPage />} />
+            ))}
+            <Route path="*" element={<Navigate to="overview" replace />} />
+          </Route>
+        </Route>
         <Route path="/collections" element={<Navigate to="/collections/dashboard" replace />} />
         <Route path="/collections" element={<CollectionsRouteBoundary />}>
           <Route path="dashboard" element={<CollectionsDashboardPage />} />
+          <Route path="installment-companies" element={<InstallmentCompaniesPage />} />
           <Route path="clients" element={<CollectionsClientsPage />} />
           <Route path="clients/:id" element={<CollectionClientWorkspacePage />} />
           <Route path="cases" element={<CollectionCasesPage />} />

@@ -25,9 +25,12 @@ public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(x => x.Address).HasMaxLength(500);
         builder.Property(x => x.City).HasMaxLength(100);
         builder.Property(x => x.HireDate).HasColumnType("date");
+        builder.Property(x => x.OperationalRole).HasMaxLength(24);
+        builder.Property(x => x.FingerprintEnrollmentDate).HasColumnType("date");
         builder.Property(x => x.Status).HasMaxLength(32).HasDefaultValue(Employee.ActiveStatus).IsRequired();
         builder.Property(x => x.TerminationDate).HasColumnType("date");
         builder.Property(x => x.TerminationReason).HasMaxLength(500);
+        builder.Property(x => x.ArchiveReason).HasMaxLength(500);
         builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
         builder.Property(x => x.CreatedAt).IsRequired();
         builder.Property(x => x.UpdatedAt);
@@ -39,10 +42,13 @@ public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.HasIndex(x => x.EmploymentTypeId);
         builder.HasIndex(x => x.DirectManagerId);
         builder.HasIndex(x => x.HireDate);
+        builder.HasIndex(x => new { x.IsArchived, x.Status });
+        builder.HasIndex(x => x.OperationalRole);
         builder.HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.Position).WithMany().HasForeignKey(x => x.PositionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.EmploymentType).WithMany().HasForeignKey(x => x.EmploymentTypeId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.DirectManager).WithMany().HasForeignKey(x => x.DirectManagerId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.ArchivedByUser).WithMany().HasForeignKey(x => x.ArchivedByUserId).OnDelete(DeleteBehavior.Restrict);
     }
 }

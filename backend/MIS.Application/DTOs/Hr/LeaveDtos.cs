@@ -149,6 +149,16 @@ public sealed class UpdateLeaveRequest
     public Guid? AttachmentDocumentId { get; init; }
 }
 
+public sealed record LeaveImportRowDto(int RowNumber, string EmployeeNumber, string? EmployeeName,
+    string LeaveType, DateOnly? StartDate, DateOnly? EndDate, string? Reason, string Result,
+    string? Message);
+
+public sealed record LeaveImportReviewDto(Guid ImportId, string FileName, int TotalRows, int ValidRows,
+    int WarningRows, int ErrorRows, IReadOnlyCollection<LeaveImportRowDto> Rows);
+
+public sealed record LeaveImportResultDto(int ImportedRecords);
+public sealed record LeaveTemplateDto(byte[] Content, string FileName, string ContentType);
+
 public sealed class ApproveLeaveRequest
 {
     [StringLength(1000)]

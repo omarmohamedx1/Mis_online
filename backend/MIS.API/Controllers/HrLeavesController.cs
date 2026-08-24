@@ -37,6 +37,26 @@ public sealed class HrLeavesController : ControllerBase
         return CreatedAtAction(nameof(GetDetails), new { id = created.Id }, created);
     }
 
+    [HttpPost("imports/review")]
+    [RequestSizeLimit(15 * 1024 * 1024)]
+    public async Task<ActionResult<LeaveImportReviewDto>> ReviewImport(IFormFile file, CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0) return BadRequest("A non-empty leave sheet is required.");
+        await using var stream = file.OpenReadStream();
+        return Ok(await _service.ReviewImportAsync(stream, file.FileName, file.Length, cancellationToken));
+    }
+
+    [HttpPost("imports/{importId:guid}/confirm")]
+    public async Task<ActionResult<LeaveImportResultDto>> ConfirmImport(Guid importId, CancellationToken cancellationToken)
+        => Ok(await _service.ConfirmImportAsync(importId, cancellationToken));
+
+    [HttpGet("imports/template")]
+    public async Task<IActionResult> DownloadImportTemplate(CancellationToken cancellationToken)
+    {
+        var template = await _service.BuildImportTemplateAsync(cancellationToken);
+        return File(template.Content, template.ContentType, template.FileName);
+    }
+
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<LeaveRequestDetailsDto>> Update(
         Guid id,

@@ -154,6 +154,10 @@ function OverviewTab({ profile, reportingLine }: { profile: EmployeeProfile; rep
     { label: t('absences'), value: profile.counters.absences },
     { label: t('delegations'), value: profile.counters.delegations },
   ];
+  const labels = language === 'ar'
+    ? { birth: 'تاريخ الميلاد', address: 'العنوان', role: 'الدور الوظيفي', start: 'تاريخ بدء العمل', end: 'تاريخ انتهاء العمل', fingerprint: 'تاريخ تسجيل البصمة', attendance: 'معلومات الحضور' }
+    : { birth: 'Date of Birth', address: 'Address', role: 'Employee Role', start: 'Work Start Date', end: 'Work End Date', fingerprint: 'Fingerprint Enrollment Date', attendance: 'Attendance Information' };
+  const role = profile.employment.operationalRole ? ({ COLLECTOR: language === 'ar' ? 'محصل' : 'Collector', ADMIN: language === 'ar' ? 'إداري' : 'Admin', SUPERVISOR: language === 'ar' ? 'مشرف' : 'Supervisor' } as const)[profile.employment.operationalRole] : null;
 
   return (
     <div className="space-y-6">
@@ -167,7 +171,11 @@ function OverviewTab({ profile, reportingLine }: { profile: EmployeeProfile; rep
             <InfoItem label={t('status')} value={<StatusBadge tone={statusTone(profile.status)}>{t(statusLabels[profile.status])}</StatusBadge>} />
             <InfoItem label={t('department')} value={profile.employment.departmentName} />
             <InfoItem label={t('position')} value={profile.employment.positionName} />
-            <InfoItem label={t('hireDate')} value={formatDate(profile.employment.hireDate, language)} />
+            <InfoItem label={labels.role} value={role} />
+            <InfoItem label={labels.start} value={formatDate(profile.employment.hireDate, language)} />
+            <InfoItem label={labels.end} value={formatDate(profile.employment.terminationDate, language)} />
+            <InfoItem label={labels.birth} value={formatDate(profile.personal.dateOfBirth, language)} />
+            <InfoItem label={labels.address} value={profile.contact.address} />
           </dl>
         </Section>
         <Section title={t('reportingLine')}>
@@ -185,6 +193,7 @@ function OverviewTab({ profile, reportingLine }: { profile: EmployeeProfile; rep
           </div>
         </Section>
       </div>
+      <Section title={labels.attendance}><dl><InfoItem label={labels.fingerprint} value={formatDate(profile.employment.fingerprintEnrollmentDate, language)} /></dl></Section>
     </div>
   );
 }

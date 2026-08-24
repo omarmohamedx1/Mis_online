@@ -55,8 +55,12 @@ public static class CollectionsValues
         public const string Sms = "SMS";
         public const string Email = "EMAIL";
         public const string Note = "NOTE";
+        public const string FollowUp = "FOLLOW_UP";
         public const string Assignment = "ASSIGNMENT";
         public const string PtpCreated = "PTP_CREATED";
+        public const string PtpKept = "PTP_KEPT";
+        public const string PtpBroken = "PTP_BROKEN";
+        public const string PtpCancelled = "PTP_CANCELLED";
         public const string Payment = "PAYMENT";
         public const string Visit = "VISIT";
         public const string Complaint = "COMPLAINT";
@@ -65,17 +69,32 @@ public static class CollectionsValues
 
     public static class VisitStatuses
     {
+        public const string Scheduled = "SCHEDULED";
         public const string Planned = "PLANNED";
         public const string Assigned = "ASSIGNED";
         public const string InProgress = "IN_PROGRESS";
         public const string Completed = "COMPLETED";
+        public const string Missed = "MISSED";
         public const string Failed = "FAILED";
         public const string Rescheduled = "RESCHEDULED";
         public const string Cancelled = "CANCELLED";
     }
 
+    public static class VisitResults
+    {
+        public const string CustomerMet = "CUSTOMER_MET";
+        public const string CustomerNotAvailable = "CUSTOMER_NOT_AVAILABLE";
+        public const string AddressNotFound = "ADDRESS_NOT_FOUND";
+        public const string WrongAddress = "WRONG_ADDRESS";
+        public const string RefusedContact = "REFUSED_CONTACT";
+        public const string PromiseToPayDiscussed = "PROMISE_TO_PAY_DISCUSSED";
+        public const string FollowUpRequired = "FOLLOW_UP_REQUIRED";
+        public const string Other = "OTHER";
+    }
+
     public static class ComplaintStatuses
     {
+        public const string Open = "OPEN";
         public const string New = "NEW";
         public const string Assigned = "ASSIGNED";
         public const string InProgress = "IN_PROGRESS";
@@ -83,6 +102,15 @@ public static class CollectionsValues
         public const string Resolved = "RESOLVED";
         public const string Reopened = "REOPENED";
         public const string Closed = "CLOSED";
+        public const string Rejected = "REJECTED";
         public const string Escalated = "ESCALATED";
+    }
+
+    public static class ComplaintPriorities
+    {
+        public const string Low = "LOW";
+        public const string Medium = "MEDIUM";
+        public const string High = "HIGH";
+        public const string Critical = "CRITICAL";
     }
 }

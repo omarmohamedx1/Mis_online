@@ -29,6 +29,7 @@ public sealed class HrDelegationService : IHrDelegationService
         if (filter.EmployeeId.HasValue) query = query.Where(item => item.EmployeeId == filter.EmployeeId.Value);
         if (filter.DepartmentId.HasValue) query = query.Where(item => item.Employee.DepartmentId == filter.DepartmentId.Value);
         if (filter.DelegationTypeId.HasValue) query = query.Where(item => item.DelegationTypeId == filter.DelegationTypeId.Value);
+        if (filter.DelegatingEntityId.HasValue) query = query.Where(item => item.DelegatingEntityId == filter.DelegatingEntityId.Value);
         if (filter.DateFrom.HasValue) query = query.Where(item => item.EndDate >= filter.DateFrom.Value);
         if (filter.DateTo.HasValue) query = query.Where(item => item.StartDate <= filter.DateTo.Value);
         if (!string.IsNullOrWhiteSpace(filter.Search))
@@ -40,6 +41,8 @@ public sealed class HrDelegationService : IHrDelegationService
                 item.Employee.FullName.ToLower().Contains(term) ||
                 (item.Employee.FullNameArabic != null && item.Employee.FullNameArabic.ToLower().Contains(term)) ||
                 (item.Employee.FullNameEnglish != null && item.Employee.FullNameEnglish.ToLower().Contains(term)) ||
+                (item.Employee.NationalId != null && item.Employee.NationalId.Contains(term)) ||
+                (item.EmployeeNationalIdSnapshot != null && item.EmployeeNationalIdSnapshot.Contains(term)) ||
                 item.Subject.ToLower().Contains(term) ||
                 (item.AuthorizedEntity != null && item.AuthorizedEntity.ToLower().Contains(term)));
         }
@@ -66,6 +69,13 @@ public sealed class HrDelegationService : IHrDelegationService
             Pages(total, filter.PageSize));
     }
 
+    public async Task<IReadOnlyCollection<DelegationEntityOptionDto>> GetEntitiesAsync(CancellationToken cancellationToken) =>
+        await _dbContext.CollectionClientOrganizations.AsNoTracking()
+            .Where(item => item.IsActive)
+            .OrderBy(item => item.NameArabic)
+            .Select(item => new DelegationEntityOptionDto(item.Id, item.NameArabic, item.NameEnglish))
+            .ToArrayAsync(cancellationToken);
+
     public async Task<DelegationDetailsDto> GetDetailsAsync(Guid id, CancellationToken cancellationToken)
     {
         var entity = await BaseQuery().AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, cancellationToken)
@@ -77,11 +87,14 @@ public sealed class HrDelegationService : IHrDelegationService
     {
         ValidateDates(request.StartDate, request.EndDate);
         var employee = await GetActiveEmployeeAsync(request.EmployeeId, cancellationToken);
+        if (string.IsNullOrWhiteSpace(employee.NationalId))
+            throw new HrValidationException("The selected employee has no National ID. Add it to the employee profile before generating a delegation.");
         ValidateEmployeeDates(employee, request.StartDate, request.EndDate);
-        var type = await GetActiveTypeAsync(request.DelegationTypeId, cancellationToken);
-        var number = string.IsNullOrWhiteSpace(request.DelegationNumber)
-            ? $"DEL-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}"[..23].ToUpperInvariant()
-            : request.DelegationNumber.Trim().ToUpperInvariant();
+        var type = request.DelegationTypeId.HasValue
+            ? await GetActiveTypeAsync(request.DelegationTypeId.Value, cancellationToken)
+            : await GetDefaultTypeAsync(cancellationToken);
+        var entityName = await ResolveEntityNameAsync(request.DelegatingEntityId, request.AuthorizedEntity, cancellationToken);
+        var number = $"DEL-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}"[..23].ToUpperInvariant();
         if (await _dbContext.EmployeeDelegations.AnyAsync(item => item.DelegationNumber == number, cancellationToken))
             throw new HrConflictException("Delegation number already exists.");
 
@@ -89,8 +102,15 @@ public sealed class HrDelegationService : IHrDelegationService
             number,
             employee.Id,
             type.Id,
-            request.Subject,
-            request.AuthorizedEntity,
+            string.IsNullOrWhiteSpace(request.Subject) ? "تفويض تحصيل" : request.Subject,
+            request.DelegatingEntityId,
+            entityName,
+            request.CompanyRepresentative,
+            request.PowerOfAttorneyNumber,
+            request.PowerOfAttorneyYear,
+            employee.FullNameArabic ?? employee.FullName,
+            employee.EmployeeNumber,
+            employee.NationalId,
             request.StartDate,
             request.EndDate,
             request.Purpose,
@@ -118,18 +138,24 @@ public sealed class HrDelegationService : IHrDelegationService
     {
         ValidateDates(request.StartDate, request.EndDate);
         var entity = await GetTrackedAsync(id, cancellationToken);
-        var employee = await GetActiveEmployeeAsync(request.EmployeeId, cancellationToken);
+        if (request.EmployeeId.HasValue && request.EmployeeId.Value != entity.EmployeeId)
+            throw new HrValidationException("The employee on an issued delegation cannot be changed. Create a new delegation instead.");
+        var employee = await GetActiveEmployeeAsync(entity.EmployeeId, cancellationToken);
         ValidateEmployeeDates(employee, request.StartDate, request.EndDate);
-        if (request.DelegationTypeId != entity.DelegationTypeId)
-            await GetActiveTypeAsync(request.DelegationTypeId, cancellationToken);
+        var typeId = request.DelegationTypeId ?? entity.DelegationTypeId;
+        if (typeId != entity.DelegationTypeId) await GetActiveTypeAsync(typeId, cancellationToken);
+        var entityName = await ResolveEntityNameAsync(request.DelegatingEntityId, request.AuthorizedEntity, cancellationToken);
         var oldValue = Snapshot(entity);
         try
         {
             entity.Update(
-                request.EmployeeId,
-                request.DelegationTypeId,
-                request.Subject,
-                request.AuthorizedEntity,
+                typeId,
+                string.IsNullOrWhiteSpace(request.Subject) ? entity.Subject : request.Subject,
+                request.DelegatingEntityId,
+                entityName,
+                request.CompanyRepresentative,
+                request.PowerOfAttorneyNumber,
+                request.PowerOfAttorneyYear,
                 request.StartDate,
                 request.EndDate,
                 request.Purpose,
@@ -191,11 +217,12 @@ public sealed class HrDelegationService : IHrDelegationService
             ?? throw new HrNotFoundException("Delegation was not found.");
         return new DelegationPrintDto(
             entity.DelegationNumber,
-            isArabic ? entity.Employee.FullNameArabic ?? entity.Employee.FullName : entity.Employee.FullNameEnglish ?? entity.Employee.FullName,
-            entity.Employee.EmployeeNumber,
-            entity.Employee.NationalId,
-            isArabic ? entity.DelegationType.NameArabic ?? entity.DelegationType.Name : entity.DelegationType.Name,
-            entity.Subject,
+            entity.EmployeeNameSnapshot ?? (isArabic ? entity.Employee.FullNameArabic ?? entity.Employee.FullName : entity.Employee.FullNameEnglish ?? entity.Employee.FullName),
+            entity.EmployeeNumberSnapshot ?? entity.Employee.EmployeeNumber,
+            entity.EmployeeNationalIdSnapshot ?? entity.Employee.NationalId,
+            entity.CompanyRepresentative,
+            entity.PowerOfAttorneyNumber,
+            entity.PowerOfAttorneyYear,
             entity.AuthorizedEntity,
             entity.Purpose,
             entity.StartDate,
@@ -206,6 +233,7 @@ public sealed class HrDelegationService : IHrDelegationService
     private IQueryable<EmployeeDelegation> BaseQuery() => _dbContext.EmployeeDelegations
         .Include(item => item.Employee).ThenInclude(employee => employee.Department)
         .Include(item => item.DelegationType)
+        .Include(item => item.DelegatingEntity)
         .Include(item => item.CreatedByUser);
 
     private async Task<EmployeeDelegation> GetTrackedAsync(Guid id, CancellationToken cancellationToken) =>
@@ -224,6 +252,22 @@ public sealed class HrDelegationService : IHrDelegationService
         if (id == Guid.Empty) throw new HrValidationException("Delegation type is required.");
         return await _dbContext.DelegationTypes.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id && item.IsActive, cancellationToken)
             ?? throw new HrValidationException("The selected delegation type does not exist or is inactive.");
+    }
+
+    private async Task<DelegationType> GetDefaultTypeAsync(CancellationToken cancellationToken) =>
+        await _dbContext.DelegationTypes.AsNoTracking().Where(item => item.IsActive).OrderBy(item => item.Name).FirstOrDefaultAsync(cancellationToken)
+        ?? throw new HrValidationException("No active delegation type is configured.");
+
+    private async Task<string> ResolveEntityNameAsync(Guid? id, string suppliedName, CancellationToken cancellationToken)
+    {
+        if (!id.HasValue || id.Value == Guid.Empty)
+        {
+            if (string.IsNullOrWhiteSpace(suppliedName)) throw new HrValidationException("Bank / delegating entity is required.");
+            return suppliedName.Trim();
+        }
+        var entity = await _dbContext.CollectionClientOrganizations.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id.Value && item.IsActive, cancellationToken)
+            ?? throw new HrValidationException("The selected bank / delegating entity does not exist or is inactive.");
+        return entity.NameArabic;
     }
 
     private static IQueryable<EmployeeDelegation> ApplySort(IQueryable<EmployeeDelegation> query, string sortBy, string direction)
@@ -253,6 +297,7 @@ public sealed class HrDelegationService : IHrDelegationService
             item.DelegationTypeId,
             isArabic ? item.DelegationType.NameArabic ?? item.DelegationType.Name : item.DelegationType.Name,
             item.Subject,
+            item.DelegatingEntityId,
             item.AuthorizedEntity,
             item.StartDate,
             item.EndDate,
@@ -275,7 +320,11 @@ public sealed class HrDelegationService : IHrDelegationService
             item.DelegationTypeId,
             isArabic ? item.DelegationType.NameArabic ?? item.DelegationType.Name : item.DelegationType.Name,
             item.Subject,
+            item.DelegatingEntityId,
             item.AuthorizedEntity,
+            item.CompanyRepresentative,
+            item.PowerOfAttorneyNumber,
+            item.PowerOfAttorneyYear,
             item.StartDate,
             item.EndDate,
             item.Purpose,
@@ -297,7 +346,11 @@ public sealed class HrDelegationService : IHrDelegationService
         item.EmployeeId,
         item.DelegationTypeId,
         item.Subject,
+        item.DelegatingEntityId,
         item.AuthorizedEntity,
+        item.CompanyRepresentative,
+        item.PowerOfAttorneyNumber,
+        item.PowerOfAttorneyYear,
         item.StartDate,
         item.EndDate,
         item.Purpose,

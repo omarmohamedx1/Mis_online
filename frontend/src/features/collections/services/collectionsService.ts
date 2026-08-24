@@ -1,5 +1,6 @@
 import { apiClient, downloadApiFile, requestFormData } from '../../../services/apiClient';
-import type { Activity, AssignmentPreview, AutoAssignmentPreview, BucketConfiguration, CaseDetails, CaseFilters, ClientCard, ClientConfiguration, CollectionAttachment, CollectionCase, CollectionDashboard, CollectorLookup, CollectionAudit, CollectionReport, CollectionsConfiguration, Complaint, FieldVisit, ImportBatch, ImportPreview, PagedResult, PaymentItem, PortfolioConfiguration, PortfolioLookup, PromiseItem, WorkQueue } from '../types/collections';
+import type { Activity, AssignmentPreview, AutoAssignmentPreview, BankDirectoryItem, BankPortfolioImport, BankPortfolioImportPage, BankPortfolioReplacementPreview, BucketConfiguration, CaseDetails, CaseFilters, ClientCard, ClientConfiguration, CollectionAttachment, CollectionCase, CollectionDashboard, CollectorLookup, CollectionAudit, CollectionReport, CollectionsConfiguration, Complaint, FieldVisit, ImportBatch, ImportPreview, PagedResult, PaymentItem, PortfolioConfiguration, PortfolioLookup, PromiseItem, WorkQueue } from '../types/collections';
+import type { ArchiveCaseDetails, ArchiveCasePage, ArchivePortfolioPage, ArchiveSummary, AutoDistributionPreview, BankActivityCaseLookup, BankActivityDetails, BankActivityItem, BankActivityPage, BankActivitySummary, BankComplaintCase, BankComplaintDetails, BankComplaintEmployee, BankComplaintPage, BankComplaintSummary, BankDcrCollector, BankDcrItem, BankDcrPage, BankPortfolioAssignmentPreview, BankPortfolioCaseDetails, BankPortfolioCasePage, BankPortfolioCollector, BankPtpDetails, BankPtpPage, BankPtpSummary, BankVisitCaseLookup, BankVisitDetails, BankVisitPage, BankVisitSummary, CaseDistributionPage, CaseDistributionSummary, DistributionCollector, DistributionImport, DistributionPreview, DistributionResult } from '../types/collections';
 
 function params(values: Record<string, unknown>) {
   const query = new URLSearchParams();
@@ -7,7 +8,96 @@ function params(values: Record<string, unknown>) {
   return query;
 }
 
+// Bank workspace screens are organization-scoped. Reuse their API calls for the
+// sibling installment-company route while keeping strict server-side type routes.
+apiClient.interceptors.request.use(config => {
+  if (window.location.pathname.startsWith('/installment-companies/') && config.url?.startsWith('/banks/'))
+    config.url = config.url.replace('/banks/', '/installment-companies/');
+  return config;
+});
+
 export const collectionsService = {
+  async banks(search?: string) { return (await apiClient.get<BankDirectoryItem[]>('/banks', { params: { search } })).data; },
+  async bank(id: string) { return (await apiClient.get<BankDirectoryItem>(`/banks/${id}`)).data; },
+  async installmentCompanies(search?: string) { return (await apiClient.get<BankDirectoryItem[]>('/installment-companies', { params: { search } })).data; },
+  async installmentCompany(id: string) { return (await apiClient.get<BankDirectoryItem>(`/installment-companies/${id}`)).data; },
+  async bankPortfolioImports(bankId: string, values: { page?: number; pageSize?: number; search?: string } = {}) { return (await apiClient.get<BankPortfolioImportPage>(`/banks/${bankId}/portfolio-imports`, { params: values })).data; },
+  async uploadBankPortfolio(bankId: string, file: File) { const form = new FormData(); form.append('file', file); return requestFormData<BankPortfolioImport>(`/banks/${bankId}/portfolio-imports`, form); },
+  async confirmBankPortfolio(bankId: string, importId: string, notes?: string) { return (await apiClient.post<BankPortfolioImport>(`/banks/${bankId}/portfolio-imports/${importId}/confirm`, { notes: notes || null })).data; },
+  async updateBankPortfolio(bankId: string, importId: string, notes?: string) { return (await apiClient.patch<BankPortfolioImport>(`/banks/${bankId}/portfolio-imports/${importId}`, { notes: notes || null })).data; },
+  async previewBankPortfolioReplacement(bankId: string, importId: string, file: File) { const form = new FormData(); form.append('file', file); return requestFormData<BankPortfolioReplacementPreview>(`/banks/${bankId}/portfolio-imports/${importId}/replacement`, form); },
+  async confirmBankPortfolioReplacement(bankId: string, importId: string, token: string) { return (await apiClient.post<BankPortfolioImport>(`/banks/${bankId}/portfolio-imports/${importId}/replacement/confirm`, { token })).data; },
+  async deleteBankPortfolio(bankId: string, importId: string) { await apiClient.delete(`/banks/${bankId}/portfolio-imports/${importId}`); },
+  async bankPortfolioCases(bankId: string, values: Record<string, unknown> = {}) { return (await apiClient.get<BankPortfolioCasePage>(`/banks/${bankId}/portfolio-cases`, { params: values })).data; },
+  async bankPortfolioCase(bankId: string, caseId: string) { return (await apiClient.get<BankPortfolioCaseDetails>(`/banks/${bankId}/portfolio-cases/${caseId}`)).data; },
+  async updateBankPortfolioCase(bankId: string, caseId: string, value: { mobile?: string; alternativeMobile?: string; address?: string; status: string; nextFollowUpAt?: string }) { return (await apiClient.patch<BankPortfolioCaseDetails>(`/banks/${bankId}/portfolio-cases/${caseId}`, value)).data; },
+  async bankPortfolioCollectors(bankId: string) { return (await apiClient.get<BankPortfolioCollector[]>(`/banks/${bankId}/portfolio-cases/collectors`)).data; },
+  async previewBankPortfolioAssignment(bankId: string, value: { caseIds: string[]; collectorId: string; reason: string }) { return (await apiClient.post<BankPortfolioAssignmentPreview>(`/banks/${bankId}/portfolio-cases/assignment/preview`, value)).data; },
+  async assignBankPortfolioCases(bankId: string, value: { caseIds: string[]; collectorId: string; reason: string }) { return (await apiClient.post<BankPortfolioAssignmentPreview>(`/banks/${bankId}/portfolio-cases/assignment`, value)).data; },
+  async exportBankPortfolioCases(bankId: string, values: Record<string, unknown> = {}) { return downloadApiFile(`/banks/${bankId}/portfolio-cases/export.csv?${params(values)}`, `portfolio-${bankId}.csv`); },
+  async distributionSummary(bankId: string) { return (await apiClient.get<CaseDistributionSummary>(`/banks/${bankId}/distribution/summary`)).data; },
+  async distributionCases(bankId: string, assigned: boolean, values: Record<string, unknown> = {}) { return (await apiClient.get<CaseDistributionPage>(`/banks/${bankId}/distribution/${assigned ? 'assigned' : 'unassigned'}`, { params: values })).data; },
+  async distributionCollectors(bankId: string) { return (await apiClient.get<DistributionCollector[]>(`/banks/${bankId}/distribution/collectors`)).data; },
+  async distributionImports(bankId: string) { return (await apiClient.get<DistributionImport[]>(`/banks/${bankId}/distribution/imports`)).data; },
+  async previewDistribution(bankId: string, action: 'assign' | 'reassign' | 'unassign', value: { caseIds: string[]; collectorId?: string; reason: string }) { return (await apiClient.post<DistributionPreview>(`/banks/${bankId}/distribution/${action}/preview`, value)).data; },
+  async applyDistribution(bankId: string, action: 'assign' | 'reassign' | 'unassign', value: { caseIds: string[]; collectorId?: string; reason: string }) { return (await apiClient.post<DistributionResult>(`/banks/${bankId}/distribution/${action}`, value)).data; },
+  async previewAutoDistribution(bankId: string, value: { caseIds: string[]; collectorIds: string[]; method: string; reason: string }) { return (await apiClient.post<AutoDistributionPreview>(`/banks/${bankId}/distribution/auto/preview`, value)).data; },
+  async confirmAutoDistribution(bankId: string, value: { caseIds: string[]; collectorIds: string[]; method: string; reason: string }) { return (await apiClient.post<DistributionResult>(`/banks/${bankId}/distribution/auto/confirm`, value)).data; },
+  async bankActivities(bankId: string, values: Record<string, unknown> = {}) { return (await apiClient.get<BankActivityPage>(`/banks/${bankId}/activities`, { params: values })).data; },
+  async bankActivitySummary(bankId: string) { return (await apiClient.get<BankActivitySummary>(`/banks/${bankId}/activities/summary`)).data; },
+  async bankActivity(bankId: string, activityId: string) { return (await apiClient.get<BankActivityDetails>(`/banks/${bankId}/activities/${activityId}`)).data; },
+  async bankCaseActivityTimeline(bankId: string, caseId: string) { return (await apiClient.get<BankActivityItem[]>(`/banks/${bankId}/activities/case/${caseId}`)).data; },
+  async bankActivityCases(bankId: string, search?: string) { return (await apiClient.get<BankActivityCaseLookup[]>(`/banks/${bankId}/activities/cases`, { params: { search } })).data; },
+  async bankActivityCollectors(bankId: string) { return (await apiClient.get<BankPortfolioCollector[]>(`/banks/${bankId}/activities/collectors`)).data; },
+  async createBankActivity(bankId: string, value: { caseId: string; activityType: string; outcome?: string; notes?: string; nextFollowUpAt?: string }) { return (await apiClient.post<BankActivityDetails>(`/banks/${bankId}/activities`, value)).data; },
+  async bankPtps(bankId:string,values:Record<string,unknown>={}){return(await apiClient.get<BankPtpPage>(`/banks/${bankId}/ptps`,{params:values})).data;},
+  async bankPtpSummary(bankId:string){return(await apiClient.get<BankPtpSummary>(`/banks/${bankId}/ptps/summary`)).data;},
+  async bankPtp(bankId:string,ptpId:string){return(await apiClient.get<BankPtpDetails>(`/banks/${bankId}/ptps/${ptpId}`)).data;},
+  async bankPtpCases(bankId:string,search?:string){return(await apiClient.get<BankActivityCaseLookup[]>(`/banks/${bankId}/ptps/cases`,{params:{search}})).data;},
+  async bankPtpCollectors(bankId:string){return(await apiClient.get<BankPortfolioCollector[]>(`/banks/${bankId}/ptps/collectors`)).data;},
+  async createBankPtp(bankId:string,value:{caseId:string;promiseAmount:number;promiseDate:string;notes?:string}){return(await apiClient.post<BankPtpDetails>(`/banks/${bankId}/ptps`,value)).data;},
+  async changeBankPtpStatus(bankId:string,ptpId:string,status:string){return(await apiClient.post<BankPtpDetails>(`/banks/${bankId}/ptps/${ptpId}/status`,{status})).data;},
+  async bankVisits(bankId:string,values:Record<string,unknown>={}){return(await apiClient.get<BankVisitPage>(`/banks/${bankId}/visits`,{params:values})).data;},
+  async bankVisitSummary(bankId:string){return(await apiClient.get<BankVisitSummary>(`/banks/${bankId}/visits/summary`)).data;},
+  async bankVisit(bankId:string,visitId:string){return(await apiClient.get<BankVisitDetails>(`/banks/${bankId}/visits/${visitId}`)).data;},
+  async bankVisitCases(bankId:string,search?:string){return(await apiClient.get<BankVisitCaseLookup[]>(`/banks/${bankId}/visits/cases`,{params:{search}})).data;},
+  async bankVisitCollectors(bankId:string){return(await apiClient.get<BankPortfolioCollector[]>(`/banks/${bankId}/visits/collectors`)).data;},
+  async createBankVisit(bankId:string,value:{caseId:string;assignedCollectorId?:string;scheduledAt:string;address?:string;purpose?:string;notes?:string}){return(await apiClient.post<BankVisitDetails>(`/banks/${bankId}/visits`,value)).data;},
+  async completeBankVisit(bankId:string,visitId:string,value:{result:string;notes?:string;nextFollowUpAt?:string}){return(await apiClient.post<BankVisitDetails>(`/banks/${bankId}/visits/${visitId}/complete`,value)).data;},
+  async rescheduleBankVisit(bankId:string,visitId:string,scheduledAt:string){return(await apiClient.post<BankVisitDetails>(`/banks/${bankId}/visits/${visitId}/reschedule`,{scheduledAt})).data;},
+  async reassignBankVisit(bankId:string,visitId:string,collectorId:string){return(await apiClient.post<BankVisitDetails>(`/banks/${bankId}/visits/${visitId}/reassign`,{collectorId})).data;},
+  async cancelBankVisit(bankId:string,visitId:string,notes?:string){return(await apiClient.post<BankVisitDetails>(`/banks/${bankId}/visits/${visitId}/cancel`,{notes})).data;},
+  async changeBankVisitStatus(bankId:string,visitId:string,status:string,notes?:string){return(await apiClient.post<BankVisitDetails>(`/banks/${bankId}/visits/${visitId}/status`,{status,notes})).data;},
+  async bankDcr(bankId:string,values:Record<string,unknown>={}){return(await apiClient.get<BankDcrPage>(`/banks/${bankId}/dcr`,{params:values})).data;},
+  async bankDcrDetails(bankId:string,id:string){return(await apiClient.get<BankDcrItem>(`/banks/${bankId}/dcr/${id}`)).data;},
+  async bankDcrCases(bankId:string,search?:string){return(await apiClient.get<BankActivityCaseLookup[]>(`/banks/${bankId}/dcr/cases`,{params:{search}})).data;},
+  async createBankDcr(bankId:string,value:Record<string,unknown>){return(await apiClient.post<BankDcrItem>(`/banks/${bankId}/dcr`,value)).data;},
+  async bankDcrCollectors(bankId:string){return(await apiClient.get<BankDcrCollector[]>(`/banks/${bankId}/dcr/collectors`)).data;},
+  async bankComplaints(bankId:string,values:Record<string,unknown>={}){return(await apiClient.get<BankComplaintPage>(`/banks/${bankId}/complaints`,{params:values})).data;},
+  async bankComplaintSummary(bankId:string){return(await apiClient.get<BankComplaintSummary>(`/banks/${bankId}/complaints/summary`)).data;},
+  async bankComplaint(bankId:string,id:string){return(await apiClient.get<BankComplaintDetails>(`/banks/${bankId}/complaints/${id}`)).data;},
+  async bankComplaintCases(bankId:string,search?:string){return(await apiClient.get<BankComplaintCase[]>(`/banks/${bankId}/complaints/cases`,{params:{search}})).data;},
+  async bankComplaintEmployees(bankId:string){return(await apiClient.get<BankComplaintEmployee[]>(`/banks/${bankId}/complaints/employees`)).data;},
+  async createBankComplaint(bankId:string,value:{caseId:string;type:string;priority:string;description:string;dueAt?:string;assignedToId?:string;note?:string}){return(await apiClient.post<BankComplaintDetails>(`/banks/${bankId}/complaints`,value)).data;},
+  async assignBankComplaint(bankId:string,id:string,assignedToId:string,expectedUpdatedAt:string,reason?:string){return(await apiClient.post<BankComplaintDetails>(`/banks/${bankId}/complaints/${id}/assign`,{assignedToId,reason,expectedUpdatedAt})).data;},
+  async prioritizeBankComplaint(bankId:string,id:string,priority:string,expectedUpdatedAt:string){return(await apiClient.post<BankComplaintDetails>(`/banks/${bankId}/complaints/${id}/priority`,{priority,expectedUpdatedAt})).data;},
+  async startBankComplaint(bankId:string,id:string,expectedUpdatedAt:string){return(await apiClient.post<BankComplaintDetails>(`/banks/${bankId}/complaints/${id}/start`,{expectedUpdatedAt})).data;},
+  async noteBankComplaint(bankId:string,id:string,text:string){return(await apiClient.post<BankComplaintDetails>(`/banks/${bankId}/complaints/${id}/notes`,{text})).data;},
+  async resolveBankComplaint(bankId:string,id:string,resolution:string,expectedUpdatedAt:string,notes?:string){return(await apiClient.post<BankComplaintDetails>(`/banks/${bankId}/complaints/${id}/resolve`,{resolution,notes,expectedUpdatedAt})).data;},
+  async closeBankComplaint(bankId:string,id:string,expectedUpdatedAt:string){return(await apiClient.post<BankComplaintDetails>(`/banks/${bankId}/complaints/${id}/close`,{expectedUpdatedAt})).data;},
+  async reopenBankComplaint(bankId:string,id:string,reason:string,expectedUpdatedAt:string){return(await apiClient.post<BankComplaintDetails>(`/banks/${bankId}/complaints/${id}/reopen`,{reason,expectedUpdatedAt})).data;},
+  async rejectBankComplaint(bankId:string,id:string,reason:string,expectedUpdatedAt:string){return(await apiClient.post<BankComplaintDetails>(`/banks/${bankId}/complaints/${id}/reject`,{reason,expectedUpdatedAt})).data;},
+  async uploadBankComplaintAttachment(bankId:string,id:string,file:File){const form=new FormData();form.append('file',file);return requestFormData<BankComplaintDetails>(`/banks/${bankId}/complaints/${id}/attachments`,form);},
+  async downloadBankComplaintAttachment(bankId:string,id:string,attachmentId:string,fileName:string){return downloadApiFile(`/banks/${bankId}/complaints/${id}/attachments/${attachmentId}`,fileName);},
+  async removeBankComplaintAttachment(bankId:string,id:string,attachmentId:string){await apiClient.delete(`/banks/${bankId}/complaints/${id}/attachments/${attachmentId}`);},
+  async archiveSummary(bankId:string){return(await apiClient.get<ArchiveSummary>(`/banks/${bankId}/archive/summary`)).data;},
+  async archivedCases(bankId:string,values:Record<string,unknown>={}){return(await apiClient.get<ArchiveCasePage>(`/banks/${bankId}/archive/cases`,{params:values})).data;},
+  async archivedCase(bankId:string,id:string){return(await apiClient.get<ArchiveCaseDetails>(`/banks/${bankId}/archive/cases/${id}`)).data;},
+  async archiveCase(bankId:string,id:string,reason:string,notes?:string,expectedUpdatedAt?:string){await apiClient.post(`/banks/${bankId}/cases/${id}/archive`,{reason,notes,expectedUpdatedAt});},
+  async restoreCase(bankId:string,id:string,reason:string,expectedUpdatedAt?:string){await apiClient.post(`/banks/${bankId}/cases/${id}/restore`,{reason,expectedUpdatedAt});},
+  async archivedPortfolios(bankId:string,values:Record<string,unknown>={}){return(await apiClient.get<ArchivePortfolioPage>(`/banks/${bankId}/archive/portfolios`,{params:values})).data;},
+  async archivePortfolio(bankId:string,id:string,reason:string,notes?:string){await apiClient.post(`/banks/${bankId}/portfolio-imports/${id}/archive`,{reason,notes});},
+  async restorePortfolio(bankId:string,id:string,reason:string){await apiClient.post(`/banks/${bankId}/portfolio-imports/${id}/restore`,{reason});},
   async dashboard(organizationId?: string) { return (await apiClient.get<CollectionDashboard>('/collections/dashboard', { params: { organizationId } })).data; },
   async clients(values: { page?: number; pageSize?: number; search?: string; type?: string; active?: boolean } = {}) { return (await apiClient.get<PagedResult<ClientCard>>('/collections/clients', { params: values })).data; },
   async cases(values: CaseFilters = {}) { return (await apiClient.get<PagedResult<CollectionCase>>(`/collections/cases?${params(values as Record<string, unknown>)}`)).data; },

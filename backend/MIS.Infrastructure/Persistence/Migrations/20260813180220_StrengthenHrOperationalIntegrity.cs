@@ -29,6 +29,11 @@ namespace MIS.Infrastructure.Persistence.Migrations
                 name: "IX_EmployeeAbsences_EmployeeId_AbsenceDate",
                 table: "EmployeeAbsences");
 
+            // Some development databases received this replacement index before the
+            // migration-history row was recorded. Remove that orphaned copy so the
+            // migration remains recoverable and can recreate the intended index.
+            migrationBuilder.Sql("DROP INDEX IF EXISTS \"UX_EmployeeAbsences_Employee_Date\";");
+
             migrationBuilder.CreateIndex(
                 name: "UX_EmployeeAbsences_Employee_Date",
                 table: "EmployeeAbsences",

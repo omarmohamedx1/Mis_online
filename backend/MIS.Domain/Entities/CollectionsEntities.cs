@@ -85,6 +85,8 @@ public sealed class CollectionCustomer
     public DateTimeOffset CreatedAt { get; private set; }
     public void ApplyImportedContact(string? nameArabic, string? nameEnglish, string? nationalId, string? primaryPhone)
     { FullNameArabic = Normalize(nameArabic) ?? FullNameArabic; FullNameEnglish = Normalize(nameEnglish) ?? FullNameEnglish; NationalId = Normalize(nationalId) ?? NationalId; PrimaryPhone = Normalize(primaryPhone) ?? PrimaryPhone; }
+    public void UpdatePortfolioContact(string? primaryPhone, string? alternatePhone, string? address, bool arabic)
+    { PrimaryPhone = Normalize(primaryPhone); AlternatePhone = Normalize(alternatePhone); if (arabic) AddressArabic = Normalize(address); else AddressEnglish = Normalize(address); }
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
@@ -175,6 +177,8 @@ public sealed class CollectionCase
     public CollectionPortfolio Portfolio { get; private set; } = null!;
     public Guid CustomerId { get; private set; }
     public CollectionCustomer Customer { get; private set; } = null!;
+    public Guid? SourceImportId { get; private set; }
+    public BankPortfolioImport? SourceImport { get; private set; }
     public string CaseNumber { get; private set; } = string.Empty;
     public string AccountReference { get; private set; } = string.Empty;
     public string? ContractReference { get; private set; }
@@ -202,15 +206,34 @@ public sealed class CollectionCase
     public DateTimeOffset? LastPaymentAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
+    public bool IsArchived { get; private set; }
+    public DateTimeOffset? ArchivedAt { get; private set; }
+    public Guid? ArchivedById { get; private set; }
+    public User? ArchivedBy { get; private set; }
+    public string? ArchiveReason { get; private set; }
+    public string? ArchiveNotes { get; private set; }
+    public DateTimeOffset? RestoredAt { get; private set; }
+    public Guid? RestoredById { get; private set; }
+    public User? RestoredBy { get; private set; }
+    public string? RestoreReason { get; private set; }
 
     public void Assign(Guid collectorId, Guid? teamId, DateTimeOffset now) { AssignedCollectorId = collectorId; AssignedTeamId = teamId; UpdatedAt = now; }
+    public void Unassign(DateTimeOffset now) { AssignedCollectorId = null; AssignedTeamId = null; UpdatedAt = now; }
     public void SetPriority(int score, string explanation, DateTimeOffset now) { PriorityScore = Math.Clamp(score, 0, 100); Priority = score >= 70 ? "HIGH" : score >= 40 ? "MEDIUM" : "NORMAL"; PriorityExplanation = explanation.Trim(); UpdatedAt = now; }
     public void RecordContact(DateTimeOffset contactedAt, DateTimeOffset? nextFollowUpAt) { LastContactAt = contactedAt; NextFollowUpAt = nextFollowUpAt; UpdatedAt = contactedAt; }
+    public void ScheduleNextFollowUp(DateTimeOffset? nextFollowUpAt, DateTimeOffset now) { NextFollowUpAt = nextFollowUpAt; UpdatedAt = now; }
     public void RecordApprovedPayment(decimal amount, DateTimeOffset paymentAt, DateTimeOffset now) { if (amount <= 0) throw new ArgumentOutOfRangeException(nameof(amount)); OutstandingBalance = Math.Max(0, OutstandingBalance - amount); OverdueBalance = Math.Max(0, OverdueBalance - amount); TotalDue = OverdueBalance + Penalties + Fees; LastPaymentAt = paymentAt; UpdatedAt = now; }
     public void ApplyImportedBalances(decimal outstanding, decimal overdue, int daysPastDue, Guid bucketId, DateTimeOffset now)
     { if (outstanding < 0 || overdue < 0 || daysPastDue < 0 || bucketId == Guid.Empty) throw new ArgumentOutOfRangeException(nameof(outstanding)); OutstandingBalance = outstanding; OverdueBalance = overdue; TotalDue = overdue + Penalties + Fees; DaysPastDue = daysPastDue; CurrentBucketId = bucketId; UpdatedAt = now; }
     public void ApplyImportedReferences(string? contractReference, string? productType, DateTimeOffset now)
     { ContractReference = string.IsNullOrWhiteSpace(contractReference) ? ContractReference : contractReference.Trim(); ProductType = string.IsNullOrWhiteSpace(productType) ? ProductType : productType.Trim(); UpdatedAt = now; }
+    public void LinkImport(Guid importId) { if (importId == Guid.Empty) throw new ArgumentException("Import is required.", nameof(importId)); SourceImportId = importId; }
+    public void UpdatePortfolioCase(string status, DateTimeOffset? nextFollowUpAt, DateTimeOffset now)
+    { ArgumentException.ThrowIfNullOrWhiteSpace(status); Status = status.Trim().ToUpperInvariant(); NextFollowUpAt = nextFollowUpAt; UpdatedAt = now; }
+    public void Archive(string reason, string? notes, Guid archivedById, DateTimeOffset now)
+    { if (IsArchived) throw new InvalidOperationException("The case is already archived."); ArgumentException.ThrowIfNullOrWhiteSpace(reason); IsArchived = true; ArchivedAt = now; ArchivedById = archivedById; ArchiveReason = reason.Trim().ToUpperInvariant(); ArchiveNotes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(); UpdatedAt = now; }
+    public void Restore(string reason, Guid restoredById, DateTimeOffset now)
+    { if (!IsArchived) throw new InvalidOperationException("The case is not archived."); ArgumentException.ThrowIfNullOrWhiteSpace(reason); IsArchived = false; RestoredAt = now; RestoredById = restoredById; RestoreReason = reason.Trim(); AssignedCollectorId = null; AssignedTeamId = null; NextFollowUpAt = null; UpdatedAt = now; }
 }
 
 public sealed class CaseBucketHistory
@@ -226,10 +249,10 @@ public sealed class CaseBucketHistory
 public sealed class CollectionAssignmentHistory
 {
     private CollectionAssignmentHistory() { }
-    public CollectionAssignmentHistory(Guid caseId, Guid? previousAssigneeId, Guid assignedToId, Guid assignedById, Guid? teamId, string reason, string source, string? ruleCode, DateTimeOffset assignedAt)
+    public CollectionAssignmentHistory(Guid caseId, Guid? previousAssigneeId, Guid? assignedToId, Guid assignedById, Guid? teamId, string reason, string source, string? ruleCode, DateTimeOffset assignedAt)
     { Id = Guid.NewGuid(); CaseId = caseId; PreviousAssigneeId = previousAssigneeId; AssignedToId = assignedToId; AssignedById = assignedById; TeamId = teamId; Reason = reason.Trim(); Source = source.Trim().ToUpperInvariant(); RuleCode = string.IsNullOrWhiteSpace(ruleCode) ? null : ruleCode.Trim(); AssignedAt = assignedAt; }
     public Guid Id { get; private set; } public Guid CaseId { get; private set; } public CollectionCase Case { get; private set; } = null!;
-    public Guid? PreviousAssigneeId { get; private set; } public User? PreviousAssignee { get; private set; } public Guid AssignedToId { get; private set; } public User AssignedTo { get; private set; } = null!;
+    public Guid? PreviousAssigneeId { get; private set; } public User? PreviousAssignee { get; private set; } public Guid? AssignedToId { get; private set; } public User? AssignedTo { get; private set; }
     public Guid AssignedById { get; private set; } public User AssignedBy { get; private set; } = null!; public Guid? TeamId { get; private set; } public CollectionTeam? Team { get; private set; }
     public string Reason { get; private set; } = string.Empty; public string Source { get; private set; } = string.Empty; public string? RuleCode { get; private set; } public DateTimeOffset AssignedAt { get; private set; }
 }
@@ -254,6 +277,12 @@ public sealed class PromiseToPay
     public string? Notes { get; private set; } public decimal ActualPaidAmount { get; private set; } public string Status { get; private set; } = string.Empty; public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? FulfilledAt { get; private set; } public DateTimeOffset? EvaluatedAt { get; private set; }
     public void ApplyEvaluation(string status, decimal actualPaidAmount, DateTimeOffset evaluatedAt) { Status = status; ActualPaidAmount = actualPaidAmount; EvaluatedAt = evaluatedAt; if (status == CollectionsValues.PromiseStatuses.Fulfilled) FulfilledAt = evaluatedAt; }
+    public void Transition(string status, DateTimeOffset changedAt)
+    {
+        if (Status != CollectionsValues.PromiseStatuses.Active) throw new InvalidOperationException("Only a pending promise can be changed.");
+        if (status is not (CollectionsValues.PromiseStatuses.Fulfilled or CollectionsValues.PromiseStatuses.Broken or CollectionsValues.PromiseStatuses.Cancelled)) throw new ArgumentException("Promise status transition is invalid.", nameof(status));
+        Status = status; EvaluatedAt = changedAt; if (status == CollectionsValues.PromiseStatuses.Fulfilled) FulfilledAt = changedAt;
+    }
 }
 
 public sealed class CollectionPayment
@@ -272,25 +301,69 @@ public sealed class CollectionPayment
 public sealed class FieldVisit
 {
     private FieldVisit() { }
-    public FieldVisit(Guid caseId, Guid collectorId, DateTimeOffset scheduledAt, string address, string? governorate, string? area, Guid createdById, DateTimeOffset createdAt)
-    { Id = Guid.NewGuid(); CaseId = caseId; CollectorId = collectorId; ScheduledAt = scheduledAt; Address = address.Trim(); Governorate = governorate; Area = area; CreatedById = createdById; Status = CollectionsValues.VisitStatuses.Assigned; CreatedAt = createdAt; }
+    public FieldVisit(Guid caseId, Guid collectorId, DateTimeOffset scheduledAt, string address, string? governorate, string? area, Guid createdById, DateTimeOffset createdAt, string? purpose = null, string? notes = null)
+    { if (caseId == Guid.Empty || collectorId == Guid.Empty || createdById == Guid.Empty) throw new ArgumentException("Case, collector, and creator are required."); ArgumentException.ThrowIfNullOrWhiteSpace(address); Id = Guid.NewGuid(); CaseId = caseId; CollectorId = collectorId; ScheduledAt = scheduledAt; Address = address.Trim(); Governorate = Normalize(governorate); Area = Normalize(area); Purpose = Normalize(purpose); Notes = Normalize(notes); CreatedById = createdById; Status = CollectionsValues.VisitStatuses.Scheduled; CreatedAt = createdAt; UpdatedAt = createdAt; }
     public Guid Id { get; private set; } public Guid CaseId { get; private set; } public CollectionCase Case { get; private set; } = null!; public Guid CollectorId { get; private set; } public User Collector { get; private set; } = null!;
     public DateTimeOffset ScheduledAt { get; private set; } public string Status { get; private set; } = string.Empty; public string Address { get; private set; } = string.Empty; public string? Governorate { get; private set; } public string? Area { get; private set; }
     public decimal? CheckInLatitude { get; private set; } public decimal? CheckInLongitude { get; private set; } public DateTimeOffset? CheckedInAt { get; private set; } public DateTimeOffset? CheckedOutAt { get; private set; }
-    public string? Result { get; private set; } public string? Notes { get; private set; } public Guid CreatedById { get; private set; } public User CreatedBy { get; private set; } = null!; public DateTimeOffset CreatedAt { get; private set; }
+    public string? Purpose { get; private set; } public string? Result { get; private set; } public string? Notes { get; private set; } public Guid CreatedById { get; private set; } public User CreatedBy { get; private set; } = null!; public DateTimeOffset CreatedAt { get; private set; } public DateTimeOffset UpdatedAt { get; private set; }
+    public void Start(DateTimeOffset now) { EnsureActive(); Status = CollectionsValues.VisitStatuses.InProgress; UpdatedAt = now; }
     public void Complete(string result, string? notes, DateTimeOffset completedAt)
-    { if (Status is CollectionsValues.VisitStatuses.Completed or CollectionsValues.VisitStatuses.Cancelled) throw new InvalidOperationException("The visit is already final."); ArgumentException.ThrowIfNullOrWhiteSpace(result); Status = CollectionsValues.VisitStatuses.Completed; Result = result.Trim(); Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(); CheckedOutAt = completedAt; }
+    { EnsureActive(); ArgumentException.ThrowIfNullOrWhiteSpace(result); Status = CollectionsValues.VisitStatuses.Completed; Result = result.Trim().ToUpperInvariant(); Notes = Normalize(notes) ?? Notes; CheckedOutAt = completedAt; UpdatedAt = completedAt; }
+    public void Reschedule(DateTimeOffset scheduledAt, DateTimeOffset now) { EnsureActive(); ScheduledAt = scheduledAt; Status = CollectionsValues.VisitStatuses.Scheduled; UpdatedAt = now; }
+    public void Reassign(Guid collectorId, DateTimeOffset now) { EnsureActive(); if (collectorId == Guid.Empty) throw new ArgumentException("Collector is required.", nameof(collectorId)); CollectorId = collectorId; UpdatedAt = now; }
+    public void Cancel(string? notes, DateTimeOffset now) { EnsureActive(); Status = CollectionsValues.VisitStatuses.Cancelled; Notes = Normalize(notes) ?? Notes; UpdatedAt = now; }
+    public void MarkMissed(string? notes, DateTimeOffset now) { EnsureActive(); Status = CollectionsValues.VisitStatuses.Missed; Notes = Normalize(notes) ?? Notes; UpdatedAt = now; }
+    private void EnsureActive() { if (Status is CollectionsValues.VisitStatuses.Completed or CollectionsValues.VisitStatuses.Cancelled or CollectionsValues.VisitStatuses.Missed) throw new InvalidOperationException("The visit is already final."); }
+    private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
+
+public sealed class CollectionDcr
+{
+    private CollectionDcr() { }
+    public CollectionDcr(Guid bankId, Guid caseId, Guid createdByUserId, DateOnly dcrDate, string actionCover, string action,
+        string feedback, string? comment, DateOnly? ptpDate, decimal? ptpAmount, DateOnly? paidDate, decimal? paidAmount,
+        DateTimeOffset? followUpAt, DateOnly? visitDate, Guid? linkedPtpId, Guid? linkedVisitId, DateTimeOffset createdAt)
+    {
+        Id = Guid.NewGuid(); BankId = bankId; CaseId = caseId; CreatedByUserId = createdByUserId; DcrDate = dcrDate;
+        ActionCover = actionCover.Trim().ToUpperInvariant().Replace(' ', '_'); Action = action.Trim().ToUpperInvariant().Replace(' ', '_'); Feedback = feedback.Trim();
+        Comment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim(); PtpDate = ptpDate; PtpAmount = ptpAmount;
+        PaidDate = paidDate; PaidAmount = paidAmount; FollowUpAt = followUpAt; VisitDate = visitDate;
+        LinkedPtpId = linkedPtpId; LinkedVisitId = linkedVisitId; CreatedAt = createdAt; UpdatedAt = createdAt;
+    }
+    public Guid Id { get; private set; }
+    public Guid BankId { get; private set; } public ClientOrganization Bank { get; private set; } = null!;
+    public Guid CaseId { get; private set; } public CollectionCase Case { get; private set; } = null!;
+    public Guid CreatedByUserId { get; private set; } public User CreatedByUser { get; private set; } = null!;
+    public DateOnly DcrDate { get; private set; } public string ActionCover { get; private set; } = string.Empty;
+    public string Action { get; private set; } = string.Empty; public string Feedback { get; private set; } = string.Empty;
+    public string? Comment { get; private set; } public DateOnly? PtpDate { get; private set; } public decimal? PtpAmount { get; private set; }
+    public DateOnly? PaidDate { get; private set; } public decimal? PaidAmount { get; private set; }
+    public DateTimeOffset? FollowUpAt { get; private set; } public DateOnly? VisitDate { get; private set; }
+    public Guid? LinkedPtpId { get; private set; } public PromiseToPay? LinkedPtp { get; private set; }
+    public Guid? LinkedVisitId { get; private set; } public FieldVisit? LinkedVisit { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; } public DateTimeOffset UpdatedAt { get; private set; }
+    public void LinkPtp(Guid id, DateTimeOffset now) { LinkedPtpId = id; UpdatedAt = now; }
 }
 
 public sealed class CollectionComplaint
 {
     private CollectionComplaint() { }
     public CollectionComplaint(Guid caseId, string reference, string source, string category, string severity, string description, DateTimeOffset receivedAt, DateTimeOffset slaDueAt, Guid ownerId, Guid createdById)
-    { Id = Guid.NewGuid(); CaseId = caseId; Reference = reference.Trim().ToUpperInvariant(); Source = source.Trim(); Category = category.Trim(); Severity = severity.Trim().ToUpperInvariant(); Description = description.Trim(); ReceivedAt = receivedAt; SlaDueAt = slaDueAt; OwnerId = ownerId; CreatedById = createdById; Status = CollectionsValues.ComplaintStatuses.New; }
+        : this(caseId, reference, source, category, severity, description, receivedAt, slaDueAt, ownerId, createdById, receivedAt) { }
+    public CollectionComplaint(Guid caseId, string reference, string source, string category, string severity, string description, DateTimeOffset receivedAt, DateTimeOffset? slaDueAt, Guid? ownerId, Guid createdById, DateTimeOffset createdAt, Guid? id = null)
+    { if (caseId == Guid.Empty || createdById == Guid.Empty) throw new ArgumentException("Case and creator are required."); ArgumentException.ThrowIfNullOrWhiteSpace(reference); ArgumentException.ThrowIfNullOrWhiteSpace(category); ArgumentException.ThrowIfNullOrWhiteSpace(description); Id = id ?? Guid.NewGuid(); CaseId = caseId; Reference = reference.Trim().ToUpperInvariant(); Source = string.IsNullOrWhiteSpace(source) ? "INTERNAL" : source.Trim().ToUpperInvariant(); Category = category.Trim().ToUpperInvariant(); Severity = severity.Trim().ToUpperInvariant(); Description = description.Trim(); ReceivedAt = receivedAt; SlaDueAt = slaDueAt; OwnerId = ownerId; CreatedById = createdById; Status = ownerId.HasValue ? CollectionsValues.ComplaintStatuses.InProgress : CollectionsValues.ComplaintStatuses.Open; UpdatedAt = createdAt; }
     public Guid Id { get; private set; } public Guid CaseId { get; private set; } public CollectionCase Case { get; private set; } = null!; public string Reference { get; private set; } = string.Empty;
     public string Source { get; private set; } = string.Empty; public string Category { get; private set; } = string.Empty; public string Severity { get; private set; } = string.Empty; public string Description { get; private set; } = string.Empty;
-    public DateTimeOffset ReceivedAt { get; private set; } public DateTimeOffset SlaDueAt { get; private set; } public string Status { get; private set; } = string.Empty; public Guid OwnerId { get; private set; } public User Owner { get; private set; } = null!;
-    public Guid CreatedById { get; private set; } public User CreatedBy { get; private set; } = null!; public string? Resolution { get; private set; } public DateTimeOffset? ClosedAt { get; private set; }
+    public DateTimeOffset ReceivedAt { get; private set; } public DateTimeOffset? SlaDueAt { get; private set; } public string Status { get; private set; } = string.Empty; public Guid? OwnerId { get; private set; } public User? Owner { get; private set; }
+    public Guid CreatedById { get; private set; } public User CreatedBy { get; private set; } = null!; public string? Resolution { get; private set; } public Guid? ResolvedById { get; private set; } public User? ResolvedBy { get; private set; } public DateTimeOffset? ResolvedAt { get; private set; } public DateTimeOffset? ClosedAt { get; private set; } public string? RejectionReason { get; private set; } public DateTimeOffset UpdatedAt { get; private set; }
+    public void Assign(Guid ownerId, DateTimeOffset changedAt) { if (ownerId == Guid.Empty) throw new ArgumentException("Assignee is required.", nameof(ownerId)); if (Status is CollectionsValues.ComplaintStatuses.Resolved or CollectionsValues.ComplaintStatuses.Closed or CollectionsValues.ComplaintStatuses.Rejected) throw new InvalidOperationException("A final complaint cannot be assigned."); OwnerId = ownerId; Status = CollectionsValues.ComplaintStatuses.InProgress; UpdatedAt = changedAt; }
+    public void ChangePriority(string priority, DateTimeOffset changedAt) { var value = priority.Trim().ToUpperInvariant(); if (value is not (CollectionsValues.ComplaintPriorities.Low or CollectionsValues.ComplaintPriorities.Medium or CollectionsValues.ComplaintPriorities.High or CollectionsValues.ComplaintPriorities.Critical)) throw new ArgumentException("Complaint priority is invalid.", nameof(priority)); Severity = value; UpdatedAt = changedAt; }
+    public void Start(DateTimeOffset changedAt) { if (Status is not (CollectionsValues.ComplaintStatuses.Open or CollectionsValues.ComplaintStatuses.New)) throw new InvalidOperationException("Only an open complaint can be started."); Status = CollectionsValues.ComplaintStatuses.InProgress; UpdatedAt = changedAt; }
+    public void Resolve(string resolution, Guid resolvedById, DateTimeOffset changedAt) { if (Status != CollectionsValues.ComplaintStatuses.InProgress) throw new InvalidOperationException("Only an in-progress complaint can be resolved."); ArgumentException.ThrowIfNullOrWhiteSpace(resolution); Resolution = resolution.Trim(); ResolvedById = resolvedById; ResolvedAt = changedAt; Status = CollectionsValues.ComplaintStatuses.Resolved; UpdatedAt = changedAt; }
+    public void Close(DateTimeOffset changedAt) { if (Status != CollectionsValues.ComplaintStatuses.Resolved) throw new InvalidOperationException("Only a resolved complaint can be closed."); Status = CollectionsValues.ComplaintStatuses.Closed; ClosedAt = changedAt; UpdatedAt = changedAt; }
+    public void Reopen(string reason, DateTimeOffset changedAt) { if (Status is not (CollectionsValues.ComplaintStatuses.Resolved or CollectionsValues.ComplaintStatuses.Closed)) throw new InvalidOperationException("Only a resolved or closed complaint can be reopened."); ArgumentException.ThrowIfNullOrWhiteSpace(reason); Status = CollectionsValues.ComplaintStatuses.InProgress; ClosedAt = null; UpdatedAt = changedAt; }
+    public void Reject(string reason, DateTimeOffset changedAt) { if (Status is not (CollectionsValues.ComplaintStatuses.Open or CollectionsValues.ComplaintStatuses.New or CollectionsValues.ComplaintStatuses.InProgress)) throw new InvalidOperationException("This complaint cannot be rejected."); ArgumentException.ThrowIfNullOrWhiteSpace(reason); RejectionReason = reason.Trim(); Status = CollectionsValues.ComplaintStatuses.Rejected; UpdatedAt = changedAt; }
     public void ChangeStatus(string status, string? resolution, DateTimeOffset changedAt)
     {
         var allowed = new[] { CollectionsValues.ComplaintStatuses.Assigned, CollectionsValues.ComplaintStatuses.InProgress, CollectionsValues.ComplaintStatuses.AwaitingInformation, CollectionsValues.ComplaintStatuses.Resolved, CollectionsValues.ComplaintStatuses.Reopened, CollectionsValues.ComplaintStatuses.Closed, CollectionsValues.ComplaintStatuses.Escalated };
@@ -298,6 +371,13 @@ public sealed class CollectionComplaint
         if ((normalized == CollectionsValues.ComplaintStatuses.Resolved || normalized == CollectionsValues.ComplaintStatuses.Closed) && string.IsNullOrWhiteSpace(resolution)) throw new ArgumentException("Resolution is required.", nameof(resolution));
         Status = normalized; Resolution = string.IsNullOrWhiteSpace(resolution) ? Resolution : resolution.Trim(); ClosedAt = normalized == CollectionsValues.ComplaintStatuses.Closed ? changedAt : null;
     }
+}
+
+public sealed class CollectionComplaintNote
+{
+    private CollectionComplaintNote() { }
+    public CollectionComplaintNote(Guid complaintId, string text, Guid createdById, DateTimeOffset createdAt) { if (complaintId == Guid.Empty || createdById == Guid.Empty) throw new ArgumentException("Complaint and author are required."); ArgumentException.ThrowIfNullOrWhiteSpace(text); Id = Guid.NewGuid(); ComplaintId = complaintId; Text = text.Trim(); CreatedById = createdById; CreatedAt = createdAt; }
+    public Guid Id { get; private set; } public Guid ComplaintId { get; private set; } public CollectionComplaint Complaint { get; private set; } = null!; public string Text { get; private set; } = string.Empty; public Guid CreatedById { get; private set; } public User CreatedBy { get; private set; } = null!; public DateTimeOffset CreatedAt { get; private set; }
 }
 
 public sealed class CollectionAuditLog
@@ -340,7 +420,8 @@ public sealed class CollectionAttachment
     private CollectionAttachment() { }
     public CollectionAttachment(Guid caseId, Guid? paymentId, string category, string originalFileName, string contentType, long fileSize, string fileHash, string storageKey, Guid uploadedById, DateTimeOffset uploadedAt)
     { if (caseId == Guid.Empty || uploadedById == Guid.Empty) throw new ArgumentException("Case and uploader are required."); if (fileSize <= 0) throw new ArgumentOutOfRangeException(nameof(fileSize)); var safeName = originalFileName.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault()?.Trim(); if (string.IsNullOrWhiteSpace(safeName)) throw new ArgumentException("A safe original file name is required.", nameof(originalFileName)); Id = Guid.NewGuid(); CaseId = caseId; PaymentId = paymentId; Category = category.Trim().ToUpperInvariant(); OriginalFileName = string.Concat(safeName.Where(c => !char.IsControl(c))); ContentType = contentType.Trim(); FileSize = fileSize; FileHash = fileHash.Trim(); StorageKey = storageKey.Trim(); UploadedById = uploadedById; UploadedAt = uploadedAt; }
-    public Guid Id { get; private set; } public Guid CaseId { get; private set; } public CollectionCase Case { get; private set; } = null!; public Guid? PaymentId { get; private set; } public CollectionPayment? Payment { get; private set; }
+    public Guid Id { get; private set; } public Guid CaseId { get; private set; } public CollectionCase Case { get; private set; } = null!; public Guid? PaymentId { get; private set; } public CollectionPayment? Payment { get; private set; } public Guid? ComplaintId { get; private set; } public CollectionComplaint? Complaint { get; private set; }
     public string Category { get; private set; } = string.Empty; public string OriginalFileName { get; private set; } = string.Empty; public string ContentType { get; private set; } = string.Empty; public long FileSize { get; private set; } public string FileHash { get; private set; } = string.Empty; public string StorageKey { get; private set; } = string.Empty;
     public Guid UploadedById { get; private set; } public User UploadedBy { get; private set; } = null!; public DateTimeOffset UploadedAt { get; private set; }
+    public void LinkComplaint(Guid complaintId) { if (complaintId == Guid.Empty) throw new ArgumentException("Complaint is required.", nameof(complaintId)); ComplaintId = complaintId; }
 }

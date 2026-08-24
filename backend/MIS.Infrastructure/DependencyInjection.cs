@@ -44,6 +44,16 @@ public static class DependencyInjection
         services.AddScoped<IHrAttendanceService, HrAttendanceService>();
         services.AddScoped<IHrAttendanceImportService, HrAttendanceImportService>();
         services.AddScoped<ICollectionsService, CollectionsService>();
+        services.AddScoped<IBanksService, BanksService>();
+        services.AddScoped<IBankPortfolioImportService, BankPortfolioImportService>();
+        services.AddScoped<IBankPortfolioCaseService, BankPortfolioCaseService>();
+        services.AddScoped<IBankCaseDistributionService, BankCaseDistributionService>();
+        services.AddScoped<IBankCaseActivityService, BankCaseActivityService>();
+        services.AddScoped<IBankPtpService, BankPtpService>();
+        services.AddScoped<IBankVisitService, BankVisitService>();
+        services.AddScoped<IBankDcrService, BankDcrService>();
+        services.AddScoped<IBankComplaintService, BankComplaintService>();
+        services.AddScoped<IBankArchiveService, BankArchiveService>();
         services.AddScoped<ICollectionsImportService, CollectionsImportService>();
         services.AddScoped<ICollectionsAttachmentService, CollectionsAttachmentService>();
         services.AddScoped<ICollectionsReportService, CollectionsReportService>();

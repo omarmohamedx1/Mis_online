@@ -34,6 +34,8 @@ export interface EmployeeEmploymentInformation {
   directManagerId: string | null;
   directManagerName: string | null;
   hireDate: string | null;
+  operationalRole: 'COLLECTOR' | 'ADMIN' | 'SUPERVISOR' | null;
+  fingerprintEnrollmentDate: string | null;
   terminationDate: string | null;
   status: EmployeeStatus;
 }
@@ -88,6 +90,9 @@ export interface EmployeeProfile {
   displayName: string;
   status: EmployeeStatus;
   isActive: boolean;
+  isArchived: boolean;
+  archivedAt: string | null;
+  archiveReason: string | null;
   hasProfilePhoto: boolean;
   canManageCompensation: boolean;
   personal: EmployeePersonalInformation;

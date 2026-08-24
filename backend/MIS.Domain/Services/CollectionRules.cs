@@ -6,6 +6,16 @@ public sealed record PromiseEvaluation(string Status, decimal PaidAmount);
 
 public static class CollectionRules
 {
+    public static readonly string[] DcrQualifyingActivityTypes = [CollectionsValues.ActivityTypes.Call, CollectionsValues.ActivityTypes.Sms,
+        CollectionsValues.ActivityTypes.Email, CollectionsValues.ActivityTypes.Note, CollectionsValues.ActivityTypes.FollowUp,
+        CollectionsValues.ActivityTypes.PtpCreated, CollectionsValues.ActivityTypes.PtpKept, CollectionsValues.ActivityTypes.PtpBroken,
+        CollectionsValues.ActivityTypes.PtpCancelled, CollectionsValues.ActivityTypes.Payment, CollectionsValues.ActivityTypes.Visit];
+    public static readonly string[] DcrSuccessfulContactOutcomes = ["ANSWERED", "CALLBACK_REQUESTED", "REFUSED_TO_PAY"];
+
+    public static bool IsSuccessfulDcrContact(string activityType, string? outcome) =>
+        activityType.Equals(CollectionsValues.ActivityTypes.Call, StringComparison.OrdinalIgnoreCase) &&
+        outcome is not null && DcrSuccessfulContactOutcomes.Contains(outcome, StringComparer.OrdinalIgnoreCase);
+
     public static PromiseEvaluation EvaluatePromise(decimal promisedAmount, decimal approvedPaidAmount, DateOnly promiseDate, DateOnly today, int graceDays, decimal toleranceAmount)
     {
         if (promisedAmount <= 0) throw new ArgumentOutOfRangeException(nameof(promisedAmount));

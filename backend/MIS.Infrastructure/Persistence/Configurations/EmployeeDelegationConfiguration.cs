@@ -19,9 +19,14 @@ public sealed class EmployeeDelegationConfiguration : IEntityTypeConfiguration<E
         builder.Property(item => item.DelegationNumber).HasMaxLength(50).IsRequired();
         builder.Property(item => item.Subject).HasMaxLength(250).IsRequired();
         builder.Property(item => item.AuthorizedEntity).HasMaxLength(250);
+        builder.Property(item => item.CompanyRepresentative).HasMaxLength(250);
+        builder.Property(item => item.PowerOfAttorneyNumber).HasMaxLength(100);
+        builder.Property(item => item.EmployeeNameSnapshot).HasMaxLength(250);
+        builder.Property(item => item.EmployeeNumberSnapshot).HasMaxLength(50);
+        builder.Property(item => item.EmployeeNationalIdSnapshot).HasMaxLength(32);
         builder.Property(item => item.StartDate).HasColumnType("date").IsRequired();
         builder.Property(item => item.EndDate).HasColumnType("date").IsRequired();
-        builder.Property(item => item.Purpose).HasMaxLength(2000).IsRequired();
+        builder.Property(item => item.Purpose).HasMaxLength(4000).IsRequired();
         builder.Property(item => item.Notes).HasMaxLength(2000);
         builder.Property(item => item.Status).HasMaxLength(24).IsRequired();
         builder.Property(item => item.CancellationReason).HasMaxLength(500);
@@ -29,8 +34,10 @@ public sealed class EmployeeDelegationConfiguration : IEntityTypeConfiguration<E
         builder.HasIndex(item => new { item.EmployeeId, item.StartDate });
         builder.HasIndex(item => new { item.Status, item.EndDate });
         builder.HasIndex(item => item.DelegationTypeId);
+        builder.HasIndex(item => item.DelegatingEntityId);
         builder.HasOne(item => item.Employee).WithMany().HasForeignKey(item => item.EmployeeId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(item => item.DelegationType).WithMany().HasForeignKey(item => item.DelegationTypeId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(item => item.DelegatingEntity).WithMany().HasForeignKey(item => item.DelegatingEntityId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(item => item.CreatedByUser).WithMany().HasForeignKey(item => item.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(item => item.UpdatedByUser).WithMany().HasForeignKey(item => item.UpdatedByUserId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(item => item.CancelledByUser).WithMany().HasForeignKey(item => item.CancelledByUserId).OnDelete(DeleteBehavior.Restrict);

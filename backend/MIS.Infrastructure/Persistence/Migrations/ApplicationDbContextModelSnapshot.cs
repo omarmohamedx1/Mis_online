@@ -375,6 +375,114 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("MIS.Domain.Entities.BankPortfolioImport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ArchiveNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ArchiveReason")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ArchivedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BankId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("FileHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<string>("PortfolioName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<string>("RestoreReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("RestoredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RestoredById")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("RowCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UploadedById")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArchivedAt");
+
+                    b.HasIndex("ArchivedById");
+
+                    b.HasIndex("RestoredById");
+
+                    b.HasIndex("UploadedById");
+
+                    b.HasIndex("BankId", "FileHash")
+                        .IsUnique();
+
+                    b.HasIndex("BankId", "IsArchived");
+
+                    b.HasIndex("BankId", "UploadedAt");
+
+                    b.ToTable("BankPortfolioImports", (string)null);
+                });
+
             modelBuilder.Entity("MIS.Domain.Entities.Branch", b =>
                 {
                     b.Property<Guid>("Id")
@@ -694,7 +802,7 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("AssignedById")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("AssignedToId")
+                    b.Property<Guid?>("AssignedToId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("CaseId")
@@ -749,6 +857,9 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<Guid?>("ComplaintId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ContentType")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -788,6 +899,8 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.HasIndex("UploadedById");
 
                     b.HasIndex("CaseId", "UploadedAt");
+
+                    b.HasIndex("ComplaintId", "UploadedAt");
 
                     b.HasIndex("FileHash", "CaseId");
 
@@ -854,6 +967,20 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<string>("ArchiveNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ArchiveReason")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ArchivedById")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("AssignedCollectorId")
                         .HasColumnType("uuid");
 
@@ -884,6 +1011,9 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Fees")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset?>("LastContactAt")
                         .HasColumnType("timestamp with time zone");
@@ -934,6 +1064,19 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("RestoreReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("RestoredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RestoredById")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SourceImportId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -948,6 +1091,10 @@ namespace MIS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ArchivedAt");
+
+                    b.HasIndex("ArchivedById");
+
                     b.HasIndex("AssignedCollectorId");
 
                     b.HasIndex("AssignedTeamId");
@@ -959,10 +1106,16 @@ namespace MIS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("NextFollowUpAt");
 
+                    b.HasIndex("RestoredById");
+
+                    b.HasIndex("SourceImportId");
+
                     b.HasIndex("CurrentBucketId", "DaysPastDue");
 
                     b.HasIndex("PortfolioId", "AccountReference")
                         .IsUnique();
+
+                    b.HasIndex("PortfolioId", "IsArchived");
 
                     b.HasIndex("Status", "AssignedCollectorId", "PriorityScore");
 
@@ -999,7 +1152,7 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
 
-                    b.Property<Guid>("OwnerId")
+                    b.Property<Guid?>("OwnerId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("ReceivedAt")
@@ -1010,16 +1163,26 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<string>("Resolution")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedById")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Severity")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
-                    b.Property<DateTimeOffset>("SlaDueAt")
+                    b.Property<DateTimeOffset?>("SlaDueAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Source")
@@ -1032,6 +1195,9 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CaseId");
@@ -1041,11 +1207,44 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.HasIndex("Reference")
                         .IsUnique();
 
+                    b.HasIndex("ResolvedById");
+
+                    b.HasIndex("CaseId", "ReceivedAt");
+
                     b.HasIndex("OwnerId", "Status");
 
                     b.HasIndex("Status", "SlaDueAt");
 
                     b.ToTable("CollectionComplaints", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionComplaintNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ComplaintId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(3000)
+                        .HasColumnType("character varying(3000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("ComplaintId", "CreatedAt");
+
+                    b.ToTable("CollectionComplaintNotes", (string)null);
                 });
 
             modelBuilder.Entity("MIS.Domain.Entities.CollectionCustomer", b =>
@@ -1117,6 +1316,93 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .HasFilter("\"NationalId\" IS NOT NULL");
 
                     b.ToTable("CollectionCustomers", (string)null);
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionDcr", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ActionCover")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<Guid>("BankId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("DcrDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Feedback")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTimeOffset?>("FollowUpAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LinkedPtpId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("LinkedVisitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("PaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateOnly?>("PaidDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal?>("PtpAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateOnly?>("PtpDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly?>("VisitDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LinkedPtpId");
+
+                    b.HasIndex("LinkedVisitId");
+
+                    b.HasIndex("BankId", "DcrDate");
+
+                    b.HasIndex("CaseId", "CreatedAt");
+
+                    b.HasIndex("CreatedByUserId", "DcrDate");
+
+                    b.ToTable("CollectionDcrs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CollectionDcrs_Amounts", "(\"PtpAmount\" IS NULL OR \"PtpAmount\" > 0) AND (\"PaidAmount\" IS NULL OR \"PaidAmount\" > 0)");
+                        });
                 });
 
             modelBuilder.Entity("MIS.Domain.Entities.CollectionImportBatch", b =>
@@ -1775,6 +2061,16 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<string>("ArchiveReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ArchivedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("BranchId")
                         .HasColumnType("uuid");
 
@@ -1806,6 +2102,9 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("EmploymentTypeId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateOnly?>("FingerprintEnrollmentDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(160)
@@ -1831,6 +2130,9 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("MaritalStatus")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
@@ -1842,6 +2144,10 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.Property<string>("NationalId")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<string>("OperationalRole")
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
 
                     b.Property<Guid?>("PositionId")
                         .HasColumnType("uuid");
@@ -1869,6 +2175,8 @@ namespace MIS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ArchivedByUserId");
+
                     b.HasIndex("BranchId");
 
                     b.HasIndex("DepartmentId");
@@ -1886,9 +2194,13 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("\"NationalId\" IS NOT NULL");
 
+                    b.HasIndex("OperationalRole");
+
                     b.HasIndex("PositionId");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("IsArchived", "Status");
 
                     b.ToTable("Employees", (string)null);
                 });
@@ -2139,10 +2451,17 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CancelledByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CompanyRepresentative")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DelegatingEntityId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("DelegationNumber")
@@ -2156,6 +2475,18 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("EmployeeNameSnapshot")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("EmployeeNationalIdSnapshot")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("EmployeeNumberSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
 
@@ -2163,10 +2494,17 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<string>("PowerOfAttorneyNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("PowerOfAttorneyYear")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Purpose")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
@@ -2192,6 +2530,8 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.HasIndex("CancelledByUserId");
 
                     b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DelegatingEntityId");
 
                     b.HasIndex("DelegationNumber")
                         .IsUnique();
@@ -2528,6 +2868,10 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(3000)
                         .HasColumnType("character varying(3000)");
 
+                    b.Property<string>("Purpose")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("Result")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -2540,11 +2884,16 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CaseId");
 
                     b.HasIndex("CreatedById");
+
+                    b.HasIndex("Status", "ScheduledAt");
 
                     b.HasIndex("CollectorId", "ScheduledAt", "Status");
 
@@ -3146,6 +3495,39 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.Navigation("UpdatedByUser");
                 });
 
+            modelBuilder.Entity("MIS.Domain.Entities.BankPortfolioImport", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.User", "ArchivedBy")
+                        .WithMany()
+                        .HasForeignKey("ArchivedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MIS.Domain.Entities.ClientOrganization", "Bank")
+                        .WithMany()
+                        .HasForeignKey("BankId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "RestoredBy")
+                        .WithMany()
+                        .HasForeignKey("RestoredById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MIS.Domain.Entities.User", "UploadedBy")
+                        .WithMany()
+                        .HasForeignKey("UploadedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ArchivedBy");
+
+                    b.Navigation("Bank");
+
+                    b.Navigation("RestoredBy");
+
+                    b.Navigation("UploadedBy");
+                });
+
             modelBuilder.Entity("MIS.Domain.Entities.CalendarException", b =>
                 {
                     b.HasOne("MIS.Domain.Entities.User", "CreatedByUser")
@@ -3238,8 +3620,7 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.HasOne("MIS.Domain.Entities.User", "AssignedTo")
                         .WithMany()
                         .HasForeignKey("AssignedToId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("MIS.Domain.Entities.CollectionCase", "Case")
                         .WithMany()
@@ -3276,6 +3657,11 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MIS.Domain.Entities.CollectionComplaint", "Complaint")
+                        .WithMany()
+                        .HasForeignKey("ComplaintId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MIS.Domain.Entities.CollectionPayment", "Payment")
                         .WithMany()
                         .HasForeignKey("PaymentId")
@@ -3288,6 +3674,8 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Case");
+
+                    b.Navigation("Complaint");
 
                     b.Navigation("Payment");
 
@@ -3313,6 +3701,11 @@ namespace MIS.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("MIS.Domain.Entities.CollectionCase", b =>
                 {
+                    b.HasOne("MIS.Domain.Entities.User", "ArchivedBy")
+                        .WithMany()
+                        .HasForeignKey("ArchivedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MIS.Domain.Entities.User", "AssignedCollector")
                         .WithMany()
                         .HasForeignKey("AssignedCollectorId")
@@ -3341,6 +3734,18 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MIS.Domain.Entities.User", "RestoredBy")
+                        .WithMany()
+                        .HasForeignKey("RestoredById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MIS.Domain.Entities.BankPortfolioImport", "SourceImport")
+                        .WithMany()
+                        .HasForeignKey("SourceImportId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ArchivedBy");
+
                     b.Navigation("AssignedCollector");
 
                     b.Navigation("AssignedTeam");
@@ -3350,6 +3755,10 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Portfolio");
+
+                    b.Navigation("RestoredBy");
+
+                    b.Navigation("SourceImport");
                 });
 
             modelBuilder.Entity("MIS.Domain.Entities.CollectionComplaint", b =>
@@ -3369,14 +3778,39 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.HasOne("MIS.Domain.Entities.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MIS.Domain.Entities.User", "ResolvedBy")
+                        .WithMany()
+                        .HasForeignKey("ResolvedById")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Case");
 
                     b.Navigation("CreatedBy");
 
                     b.Navigation("Owner");
+
+                    b.Navigation("ResolvedBy");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionComplaintNote", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.CollectionComplaint", "Complaint")
+                        .WithMany()
+                        .HasForeignKey("ComplaintId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Complaint");
+
+                    b.Navigation("CreatedBy");
                 });
 
             modelBuilder.Entity("MIS.Domain.Entities.CollectionCustomer", b =>
@@ -3388,6 +3822,47 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("MIS.Domain.Entities.CollectionDcr", b =>
+                {
+                    b.HasOne("MIS.Domain.Entities.ClientOrganization", "Bank")
+                        .WithMany()
+                        .HasForeignKey("BankId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.CollectionCase", "Case")
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MIS.Domain.Entities.PromiseToPay", "LinkedPtp")
+                        .WithMany()
+                        .HasForeignKey("LinkedPtpId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MIS.Domain.Entities.FieldVisit", "LinkedVisit")
+                        .WithMany()
+                        .HasForeignKey("LinkedVisitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Bank");
+
+                    b.Navigation("Case");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("LinkedPtp");
+
+                    b.Navigation("LinkedVisit");
                 });
 
             modelBuilder.Entity("MIS.Domain.Entities.CollectionImportBatch", b =>
@@ -3540,6 +4015,11 @@ namespace MIS.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("MIS.Domain.Entities.Employee", b =>
                 {
+                    b.HasOne("MIS.Domain.Entities.User", "ArchivedByUser")
+                        .WithMany()
+                        .HasForeignKey("ArchivedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MIS.Domain.Entities.Branch", "Branch")
                         .WithMany()
                         .HasForeignKey("BranchId")
@@ -3565,6 +4045,8 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("PositionId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ArchivedByUser");
 
                     b.Navigation("Branch");
 
@@ -3638,6 +4120,11 @@ namespace MIS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MIS.Domain.Entities.ClientOrganization", "DelegatingEntity")
+                        .WithMany()
+                        .HasForeignKey("DelegatingEntityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MIS.Domain.Entities.DelegationType", "DelegationType")
                         .WithMany()
                         .HasForeignKey("DelegationTypeId")
@@ -3658,6 +4145,8 @@ namespace MIS.Infrastructure.Persistence.Migrations
                     b.Navigation("CancelledByUser");
 
                     b.Navigation("CreatedByUser");
+
+                    b.Navigation("DelegatingEntity");
 
                     b.Navigation("DelegationType");
 

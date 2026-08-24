@@ -51,14 +51,17 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<CaseBucketHistory> CollectionCaseBucketHistory => Set<CaseBucketHistory>();
     public DbSet<CollectionAssignmentHistory> CollectionAssignmentHistory => Set<CollectionAssignmentHistory>();
     public DbSet<CollectionActivity> CollectionActivities => Set<CollectionActivity>();
+    public DbSet<CollectionDcr> CollectionDcrs => Set<CollectionDcr>();
     public DbSet<PromiseToPay> CollectionPromisesToPay => Set<PromiseToPay>();
     public DbSet<CollectionPayment> CollectionPayments => Set<CollectionPayment>();
     public DbSet<FieldVisit> CollectionFieldVisits => Set<FieldVisit>();
     public DbSet<CollectionComplaint> CollectionComplaints => Set<CollectionComplaint>();
+    public DbSet<CollectionComplaintNote> CollectionComplaintNotes => Set<CollectionComplaintNote>();
     public DbSet<CollectionAuditLog> CollectionAuditLogs => Set<CollectionAuditLog>();
     public DbSet<CollectionImportBatch> CollectionImportBatches => Set<CollectionImportBatch>();
     public DbSet<CollectionImportRow> CollectionImportRows => Set<CollectionImportRow>();
     public DbSet<CollectionAttachment> CollectionAttachments => Set<CollectionAttachment>();
+    public DbSet<BankPortfolioImport> BankPortfolioImports => Set<BankPortfolioImport>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -67,6 +67,10 @@ export interface SaveLeaveRequest {
   attachmentDocumentId: string | null;
 }
 
+export interface LeaveImportRow { rowNumber: number; employeeNumber: string; employeeName: string | null; leaveType: string; startDate: string | null; endDate: string | null; reason: string | null; result: 'Valid' | 'Warning' | 'Error'; message: string | null; }
+export interface LeaveImportReview { importId: string; fileName: string; totalRows: number; validRows: number; warningRows: number; errorRows: number; rows: LeaveImportRow[]; }
+export interface LeaveImportResult { importedRecords: number; }
+
 export interface LeaveBalance {
   employeeId: string;
   employeeNumber: string;

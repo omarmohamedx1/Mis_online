@@ -44,9 +44,16 @@ public sealed class Employee
     public Guid? DirectManagerId { get; private set; }
     public Employee? DirectManager { get; private set; }
     public DateOnly? HireDate { get; private set; }
+    public string? OperationalRole { get; private set; }
+    public DateOnly? FingerprintEnrollmentDate { get; private set; }
     public string Status { get; private set; } = ActiveStatus;
     public DateOnly? TerminationDate { get; private set; }
     public string? TerminationReason { get; private set; }
+    public bool IsArchived { get; private set; }
+    public DateTimeOffset? ArchivedAt { get; private set; }
+    public Guid? ArchivedByUserId { get; private set; }
+    public User? ArchivedByUser { get; private set; }
+    public string? ArchiveReason { get; private set; }
     public bool IsActive { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? UpdatedAt { get; private set; }
@@ -151,6 +158,46 @@ public sealed class Employee
     public void Reactivate(DateTimeOffset updatedAt) =>
         ChangeStatus(ActiveStatus, true, null, null, updatedAt);
 
+    public void SetNationalId(string nationalId, DateTimeOffset updatedAt)
+    {
+        if (string.IsNullOrEmpty(nationalId) || nationalId.Length != 14 || nationalId.Any(character => character is < '0' or > '9'))
+            throw new ArgumentException("National ID must contain exactly 14 digits.", nameof(nationalId));
+        NationalId = nationalId;
+        UpdatedAt = updatedAt;
+    }
+
+    public void ApplyEmployeeProfile(Guid positionId, string operationalRole, DateOnly workStartDate,
+        DateOnly? fingerprintEnrollmentDate, DateOnly? dateOfBirth, string? address, DateOnly? workEndDate,
+        DateTimeOffset updatedAt)
+    {
+        if (positionId == Guid.Empty) throw new ArgumentException("Position is required.", nameof(positionId));
+        if (workStartDate.Year < 1900) throw new ArgumentException("Work start date is required.", nameof(workStartDate));
+        if (workEndDate.HasValue && workEndDate < workStartDate) throw new ArgumentException("Work end date cannot be before work start date.", nameof(workEndDate));
+        if (dateOfBirth > DateOnly.FromDateTime(updatedAt.UtcDateTime)) throw new ArgumentException("Date of birth cannot be in the future.", nameof(dateOfBirth));
+        PositionId = positionId;
+        OperationalRole = NormalizeOperationalRole(operationalRole);
+        HireDate = workStartDate;
+        FingerprintEnrollmentDate = fingerprintEnrollmentDate;
+        DateOfBirth = dateOfBirth;
+        Address = NormalizeOptional(address);
+        TerminationDate = workEndDate;
+        UpdatedAt = updatedAt;
+    }
+
+    public void Archive(string reason, Guid archivedByUserId, DateTimeOffset archivedAt)
+    {
+        if (IsArchived) throw new InvalidOperationException("The employee is already archived.");
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        if (archivedByUserId == Guid.Empty) throw new ArgumentException("Archiving user is required.", nameof(archivedByUserId));
+        IsArchived = true; ArchivedAt = archivedAt; ArchivedByUserId = archivedByUserId; ArchiveReason = reason.Trim(); UpdatedAt = archivedAt;
+    }
+
+    public void Restore(DateTimeOffset restoredAt)
+    {
+        if (!IsArchived) throw new InvalidOperationException("The employee is not archived.");
+        IsArchived = false; UpdatedAt = restoredAt;
+    }
+
     private void SetDetails(string employeeNumber, string fullName, Guid departmentId, bool isActive, DateTimeOffset timestamp)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(employeeNumber);
@@ -186,6 +233,12 @@ public sealed class Employee
         "suspended" => SuspendedStatus,
         "terminated" => TerminatedStatus,
         _ => value.Trim()
+    };
+
+    private static string NormalizeOperationalRole(string value) => value?.Trim().ToUpperInvariant() switch
+    {
+        "COLLECTOR" => "COLLECTOR", "ADMIN" => "ADMIN", "SUPERVISOR" => "SUPERVISOR",
+        _ => throw new ArgumentException("Employee role must be COLLECTOR, ADMIN, or SUPERVISOR.", nameof(value))
     };
 
     private static void EnsureTimestamp(DateTimeOffset timestamp, string parameterName)

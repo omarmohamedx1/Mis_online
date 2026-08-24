@@ -16,15 +16,18 @@ public sealed class HrEmployeesController : ControllerBase
     private readonly IHrEmployeeRepository _repository;
     private readonly IHrAuditService _audit;
     private readonly IHrTransactionRunner _transactions;
+    private readonly ICurrentUserContext _currentUser;
 
     public HrEmployeesController(
         IHrEmployeeRepository repository,
         IHrAuditService audit,
-        IHrTransactionRunner transactions)
+        IHrTransactionRunner transactions,
+        ICurrentUserContext currentUser)
     {
         _repository = repository;
         _audit = audit;
         _transactions = transactions;
+        _currentUser = currentUser;
     }
 
     [HttpGet]
@@ -34,6 +37,8 @@ public sealed class HrEmployeesController : ControllerBase
         [FromQuery] string? search = null,
         [FromQuery] Guid? departmentId = null,
         [FromQuery] string? status = null,
+        [FromQuery] string? role = null,
+        [FromQuery] bool? archived = false,
         CancellationToken cancellationToken = default)
     {
         if (page < 1 || pageSize is < 1 or > 100)
@@ -55,7 +60,9 @@ public sealed class HrEmployeesController : ControllerBase
         if (!string.IsNullOrWhiteSpace(normalizedStatus) && normalizedStatus is not ("all" or "active" or "inactive" or "onleave" or "on_leave" or "on leave" or "suspended" or "terminated"))
             return BadRequest(ApiErrorResponse.Failure("Status must be all, active, inactive, on leave, suspended, or terminated."));
 
-        return Ok(await _repository.GetPagedByStatusAsync(page, pageSize, search, departmentId, employeeStatus, cancellationToken));
+        var operationalRole = NormalizeOperationalRole(role);
+        if (!string.IsNullOrWhiteSpace(role) && operationalRole is null) return BadRequest(ApiErrorResponse.Failure("Role must be COLLECTOR, ADMIN, or SUPERVISOR."));
+        return Ok(await _repository.GetPagedByStatusAsync(page, pageSize, search, departmentId, employeeStatus, operationalRole, archived, cancellationToken));
     }
 
     [HttpGet("{id:guid}")]
@@ -72,6 +79,9 @@ public sealed class HrEmployeesController : ControllerBase
         if (error is not null) return error;
 
         var employee = new Employee(request.EmployeeNumber, request.FullName, request.DepartmentId, request.IsActive, DateTimeOffset.UtcNow);
+        employee.SetNationalId(request.NationalId, DateTimeOffset.UtcNow);
+        employee.ApplyEmployeeProfile(request.PositionId!.Value, request.OperationalRole!, request.WorkStartDate!.Value,
+            request.FingerprintEnrollmentDate, request.DateOfBirth, request.Address, request.WorkEndDate, DateTimeOffset.UtcNow);
         var created = await _transactions.ExecuteAsync(async token =>
         {
             _repository.Add(employee);
@@ -101,6 +111,9 @@ public sealed class HrEmployeesController : ControllerBase
         if (error is not null) return error;
 
         employee.Update(request.EmployeeNumber, request.FullName, request.DepartmentId, request.IsActive, DateTimeOffset.UtcNow);
+        employee.SetNationalId(request.NationalId, DateTimeOffset.UtcNow);
+        employee.ApplyEmployeeProfile(request.PositionId!.Value, request.OperationalRole!, request.WorkStartDate!.Value,
+            request.FingerprintEnrollmentDate, request.DateOfBirth, request.Address, request.WorkEndDate, DateTimeOffset.UtcNow);
         var updated = await _transactions.ExecuteAsync(async token =>
         {
             await _repository.SaveChangesAsync(token);
@@ -119,12 +132,50 @@ public sealed class HrEmployeesController : ControllerBase
         return Ok(updated);
     }
 
+    [HttpPost("{id:guid}/archive")]
+    public async Task<ActionResult<EmployeeDetailsDto>> Archive(Guid id, ArchiveEmployeeRequest request, CancellationToken cancellationToken)
+    {
+        var employee = await _repository.GetTrackedByIdAsync(id, cancellationToken);
+        if (employee is null) return NotFound(ApiErrorResponse.Failure("Employee was not found."));
+        var before = await _repository.GetDetailsByIdAsync(id, cancellationToken);
+        try { employee.Archive(request.Reason, _currentUser.UserId, DateTimeOffset.UtcNow); }
+        catch (InvalidOperationException ex) { return Conflict(ApiErrorResponse.Failure(ex.Message)); }
+        return Ok(await _transactions.ExecuteAsync(async token => { await _repository.SaveChangesAsync(token); var details = await _repository.GetDetailsByIdAsync(id, token) ?? throw new InvalidOperationException(); await _audit.WriteAsync(new AuditWriteRequest("EmployeeArchived", nameof(Employee), id.ToString(), id, before, details, $"Archived employee {employee.EmployeeNumber}."), token); return details; }, cancellationToken));
+    }
+
+    [HttpPost("{id:guid}/restore")]
+    public async Task<ActionResult<EmployeeDetailsDto>> Restore(Guid id, CancellationToken cancellationToken)
+    {
+        var employee = await _repository.GetTrackedByIdAsync(id, cancellationToken);
+        if (employee is null) return NotFound(ApiErrorResponse.Failure("Employee was not found."));
+        var before = await _repository.GetDetailsByIdAsync(id, cancellationToken);
+        try { employee.Restore(DateTimeOffset.UtcNow); }
+        catch (InvalidOperationException ex) { return Conflict(ApiErrorResponse.Failure(ex.Message)); }
+        return Ok(await _transactions.ExecuteAsync(async token => { await _repository.SaveChangesAsync(token); var details = await _repository.GetDetailsByIdAsync(id, token) ?? throw new InvalidOperationException(); await _audit.WriteAsync(new AuditWriteRequest("EmployeeRestored", nameof(Employee), id.ToString(), id, before, details, $"Restored employee {employee.EmployeeNumber}."), token); return details; }, cancellationToken));
+    }
+
     private async Task<ActionResult?> ValidateRequestAsync(SaveEmployeeRequest request, Guid? excludingId, CancellationToken cancellationToken)
     {
         if (request.DepartmentId == Guid.Empty || !await _repository.DepartmentExistsAsync(request.DepartmentId, cancellationToken))
             return BadRequest(ApiErrorResponse.Failure("A valid department is required."));
         if (await _repository.EmployeeNumberExistsAsync(request.EmployeeNumber, excludingId, cancellationToken))
             return Conflict(ApiErrorResponse.Failure("An employee with this employee ID already exists."));
+        if (!System.Text.RegularExpressions.Regex.IsMatch(request.NationalId ?? string.Empty, "^[0-9]{14}$"))
+            return BadRequest(ApiErrorResponse.Failure("National ID must contain exactly 14 digits."));
+        if (await _repository.NationalIdExistsAsync(request.NationalId!, excludingId, cancellationToken))
+            return Conflict(ApiErrorResponse.Failure("An employee with this National ID already exists."));
+        if (!request.PositionId.HasValue || request.PositionId == Guid.Empty || !await _repository.PositionExistsAsync(request.PositionId.Value, cancellationToken))
+            return BadRequest(ApiErrorResponse.Failure("A valid position is required."));
+        if (NormalizeOperationalRole(request.OperationalRole) is null)
+            return BadRequest(ApiErrorResponse.Failure("Employee role must be COLLECTOR, ADMIN, or SUPERVISOR."));
+        if (!request.WorkStartDate.HasValue)
+            return BadRequest(ApiErrorResponse.Failure("Work start date is required."));
+        if (request.DateOfBirth > DateOnly.FromDateTime(DateTime.UtcNow))
+            return BadRequest(ApiErrorResponse.Failure("Date of birth cannot be in the future."));
+        if (request.WorkEndDate.HasValue && request.WorkEndDate < request.WorkStartDate)
+            return BadRequest(ApiErrorResponse.Failure("Work end date cannot be before work start date."));
         return null;
     }
+
+    private static string? NormalizeOperationalRole(string? value) => value?.Trim().ToUpperInvariant() is "COLLECTOR" or "ADMIN" or "SUPERVISOR" ? value.Trim().ToUpperInvariant() : null;
 }

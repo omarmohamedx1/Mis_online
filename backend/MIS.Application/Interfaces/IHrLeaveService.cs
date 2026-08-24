@@ -28,4 +28,8 @@ public interface IHrLeaveService
         int year,
         UpsertLeaveEntitlementRequest request,
         CancellationToken cancellationToken);
+
+    Task<LeaveImportReviewDto> ReviewImportAsync(Stream stream, string fileName, long length, CancellationToken cancellationToken);
+    Task<LeaveImportResultDto> ConfirmImportAsync(Guid importId, CancellationToken cancellationToken);
+    Task<LeaveTemplateDto> BuildImportTemplateAsync(CancellationToken cancellationToken);
 }
