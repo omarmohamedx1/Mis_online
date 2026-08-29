@@ -23,7 +23,7 @@ import { hrEmployeeService } from '../../features/hr/services/hrEmployeeService'
 import { hrMasterDataService } from '../../features/hr/services/hrMasterDataService';
 import type { EmployeeListItem } from '../../features/hr/types/employee';
 import type { DocumentExpiryStatus, EmployeeDocumentDetails, EmployeeDocumentListItem, EmployeeDocumentQuery, PagedEmployeeDocuments, SaveEmployeeDocumentMetadata } from '../../features/hr/types/document';
-import type { MasterDataItem, MasterDataLookup } from '../../features/hr/types/masterData';
+import type { MasterDataLookup } from '../../features/hr/types/masterData';
 import { getApiErrorMessage } from '../../services/apiClient';
 
 const emptyPage: PagedEmployeeDocuments = { items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 };
@@ -38,7 +38,7 @@ function formatDate(value: string | null, locale: string) { return value ? new I
 function formatDateTime(value: string, locale: string) { return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
 function nullable(value: string) { return value.trim() || null; }
 
-function DocumentFormModal({ document, initialEmployee, onClose, onSaved, types }: { document: EmployeeDocumentDetails | null; initialEmployee: EmployeeListItem | null; onClose: () => void; onSaved: () => void; types: MasterDataItem[] }) {
+function DocumentFormModal({ document, initialEmployee, onClose, onSaved, types }: { document: EmployeeDocumentDetails | null; initialEmployee: EmployeeListItem | null; onClose: () => void; onSaved: () => void; types: MasterDataLookup[] }) {
   const { language } = useLocalization(); const text = copy[language]; const toast = useToast();
   const [employeeId, setEmployeeId] = useState(document?.employeeId ?? initialEmployee?.id ?? '');
   const [employee, setEmployee] = useState<EmployeeListItem | null>(initialEmployee);
@@ -62,11 +62,11 @@ export function HrEmployeeDocumentsPage() {
   const initialEmployeeId = searchParams.get('employeeId') ?? '';
   const [query, setQuery] = useState<EmployeeDocumentQuery>({ page: 1, pageSize: 20, search: '', employeeId: initialEmployeeId, departmentId: '', documentTypeId: '', expiryStatus: 'All', expiringWithinDays: 30, sortBy: 'uploadedAt', sortDirection: 'desc' });
   const [search, setSearch] = useState(''); const [data, setData] = useState(emptyPage); const [summary, setSummary] = useState({ expired: 0, expiringWithin7Days: 0, expiringWithin15Days: 0, expiringWithin30Days: 0 });
-  const [departments, setDepartments] = useState<MasterDataLookup[]>([]); const [types, setTypes] = useState<MasterDataItem[]>([]); const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null);
+  const [departments, setDepartments] = useState<MasterDataLookup[]>([]); const [types, setTypes] = useState<MasterDataLookup[]>([]); const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null);
   const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [formOpen, setFormOpen] = useState(false); const [editing, setEditing] = useState<EmployeeDocumentDetails | null>(null); const [details, setDetails] = useState<EmployeeDocumentDetails | null>(null); const [replaceTarget, setReplaceTarget] = useState<EmployeeDocumentListItem | null>(null); const [deleteTarget, setDeleteTarget] = useState<EmployeeDocumentListItem | null>(null); const [reason, setReason] = useState(''); const [file, setFile] = useState<File | null>(null); const [busy, setBusy] = useState('');
 
   useEffect(() => { const timer = window.setTimeout(() => setQuery((current) => ({ ...current, page: 1, search: search.trim() })), 300); return () => window.clearTimeout(timer); }, [search]);
-  useEffect(() => { void Promise.all([hrMasterDataService.getLookup('departments'), hrMasterDataService.getPaged({ category: 'document-types', isActive: null, page: 1, pageSize: 200, search: '' })]).then(([departmentItems, typeItems]) => { setDepartments(departmentItems); setTypes(typeItems.items); }).catch(() => undefined); }, []);
+  useEffect(() => { void Promise.all([hrMasterDataService.getLookup('departments'), hrMasterDataService.getLookup('document-types', true)]).then(([departmentItems, typeItems]) => { setDepartments(departmentItems); setTypes(typeItems); }).catch(() => undefined); }, []);
   useEffect(() => { if (!initialEmployeeId) return; void hrEmployeeService.getEmployee(initialEmployeeId).then((item) => setSelectedEmployee(item)).catch(() => undefined); }, [initialEmployeeId]);
   const load = useCallback(async () => { setLoading(true); setError(''); try { const [items, totals] = await Promise.all([hrEmployeeDocumentService.getPaged(query), hrEmployeeDocumentService.getSummary()]); setData(items); setSummary(totals); } catch (requestError) { setError(getApiErrorMessage(requestError, text.loadError)); } finally { setLoading(false); } }, [query, text.loadError]);
   useEffect(() => { void load(); }, [load]);
