@@ -56,8 +56,10 @@ img, svg { max-width: 100%; }
 @media (min-width: 1024px) {
   .module-sidebar { width: 18rem; max-width: none; transform: translateX(0) !important; }
   .module-shell[data-sidebar-collapsed='true'] .module-sidebar { width: 5rem; }
-  .module-shell[data-sidebar-collapsed='false'] .module-content { padding-inline-start: 18rem; }
-  .module-shell[data-sidebar-collapsed='true'] .module-content { padding-inline-start: 5rem; }
+  .module-shell[data-layout-direction='ltr'][data-sidebar-collapsed='false'] .module-content { padding-left: 18rem; padding-right: 0; }
+  .module-shell[data-layout-direction='ltr'][data-sidebar-collapsed='true'] .module-content { padding-left: 5rem; padding-right: 0; }
+  .module-shell[data-layout-direction='rtl'][data-sidebar-collapsed='false'] .module-content { padding-left: 0; padding-right: 18rem; }
+  .module-shell[data-layout-direction='rtl'][data-sidebar-collapsed='true'] .module-content { padding-left: 0; padding-right: 5rem; }
   .module-shell[data-sidebar-collapsed='true'] .module-sidebar-header { justify-content: center; padding-inline: .5rem; }
   .module-shell[data-sidebar-collapsed='true'] .module-sidebar-identity { justify-content: center; }
   .module-shell[data-sidebar-collapsed='true'] .module-sidebar-logo { height: 2.5rem; }
