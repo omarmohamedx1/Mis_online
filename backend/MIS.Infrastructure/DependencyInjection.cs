@@ -74,11 +74,21 @@ public static class DependencyInjection
 
     private static void ValidateJwtOptions(IConfiguration configuration)
     {
-        var secretKey = configuration[$"{JwtOptions.SectionName}:SecretKey"];
+        var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+            ?? throw new InvalidOperationException("Jwt configuration is missing.");
 
-        if (string.IsNullOrWhiteSpace(secretKey) || Encoding.UTF8.GetByteCount(secretKey) < JwtOptions.MinimumSecretBytes)
+        if (string.IsNullOrWhiteSpace(jwtOptions.SecretKey) || Encoding.UTF8.GetByteCount(jwtOptions.SecretKey) < JwtOptions.MinimumSecretBytes)
         {
             throw new InvalidOperationException($"Jwt:SecretKey must be configured with at least {JwtOptions.MinimumSecretBytes} bytes. Use environment variables or user secrets.");
         }
+
+        if (string.IsNullOrWhiteSpace(jwtOptions.Issuer))
+            throw new InvalidOperationException("Jwt:Issuer must not be empty.");
+
+        if (string.IsNullOrWhiteSpace(jwtOptions.Audience))
+            throw new InvalidOperationException("Jwt:Audience must not be empty.");
+
+        if (jwtOptions.ExpiresInMinutes <= 0)
+            throw new InvalidOperationException("Jwt:ExpiresInMinutes must be greater than zero.");
     }
 }

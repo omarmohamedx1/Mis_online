@@ -164,8 +164,9 @@ public sealed class CollectionImportsController : ControllerBase
     [HttpGet("portfolios")]
     public Task<IReadOnlyCollection<PortfolioLookupDto>> Portfolios([FromQuery] Guid? organizationId, CancellationToken token) => _service.GetPortfoliosAsync(organizationId, token);
     [HttpPost]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(21 * 1024 * 1024)]
-    public async Task<ActionResult<CollectionImportBatchDto>> Upload([FromForm] Guid organizationId, [FromForm] Guid portfolioId, [FromForm] IFormFile file, CancellationToken token)
+    public async Task<ActionResult<CollectionImportBatchDto>> Upload([FromForm] Guid organizationId, [FromForm] Guid portfolioId, IFormFile file, CancellationToken token)
     {
         if (file is null || file.Length == 0) return BadRequest(MIS.Application.Common.ApiErrorResponse.Failure("A non-empty CSV or XLSX file is required.")); await using var stream = file.OpenReadStream(); var value = await _service.UploadAsync(organizationId, portfolioId, file.FileName, file.ContentType ?? "application/octet-stream", file.Length, stream, token); return Created($"/api/collections/imports/{value.Id}", value);
     }
@@ -211,8 +212,9 @@ public sealed class CollectionsBrandingController : ControllerBase
 
     [HttpPost("clients/{id:guid}/logo")]
     [Authorize(Policy = AuthorizationPolicies.CollectionsConfigurationManage)]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(3 * 1024 * 1024)]
-    public async Task<ActionResult<CollectionBrandLogoDto>> Upload(Guid id, [FromForm] IFormFile file, CancellationToken token)
+    public async Task<ActionResult<CollectionBrandLogoDto>> Upload(Guid id, IFormFile file, CancellationToken token)
     {
         if (file is null || file.Length == 0) return BadRequest(MIS.Application.Common.ApiErrorResponse.Failure("A non-empty logo is required."));
         await using var stream = file.OpenReadStream();
@@ -239,8 +241,9 @@ public sealed class CollectionAttachmentsController : ControllerBase
     [HttpGet("case/{caseId:guid}")]
     public Task<IReadOnlyCollection<CollectionAttachmentDto>> CaseAttachments(Guid caseId, CancellationToken token) => _service.GetCaseAttachmentsAsync(caseId, token);
     [HttpPost]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(11 * 1024 * 1024)]
-    public async Task<ActionResult<CollectionAttachmentDto>> Upload([FromForm] Guid caseId, [FromForm] Guid? paymentId, [FromForm] string category, [FromForm] IFormFile file, CancellationToken token)
+    public async Task<ActionResult<CollectionAttachmentDto>> Upload([FromForm] Guid caseId, [FromForm] Guid? paymentId, [FromForm] string category, IFormFile file, CancellationToken token)
     { if (file is null || file.Length == 0) return BadRequest(MIS.Application.Common.ApiErrorResponse.Failure("A non-empty attachment is required.")); await using var stream = file.OpenReadStream(); var value = await _service.UploadAsync(caseId, paymentId, category, file.FileName, file.ContentType ?? "application/octet-stream", file.Length, stream, token); return Created($"/api/collections/attachments/{value.Id}", value); }
     [HttpGet("{id:guid}/download")]
     public async Task<IActionResult> Download(Guid id, CancellationToken token) { var value = await _service.DownloadAsync(id, token); return File(value.Content, value.ContentType, value.FileName); }

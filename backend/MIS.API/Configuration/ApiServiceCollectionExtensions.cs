@@ -40,6 +40,8 @@ public static class ApiServiceCollectionExtensions
                     return new BadRequestObjectResult(ApiErrorResponse.Failure("Validation failed.", errors));
                 };
             });
+        services.AddEndpointsApiExplorer();
+        services.AddSwaggerGen();
 
         var supportedCultures = new[] { new CultureInfo("en"), new CultureInfo("ar") };
         services.Configure<RequestLocalizationOptions>(options =>

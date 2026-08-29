@@ -145,8 +145,8 @@ dotnet ef database update --project MIS.Infrastructure --startup-project MIS.API
 
 Design-time EF commands load `MIS.API/appsettings.json`, the active environment file,
 MIS.API user secrets, and then environment variables (in that precedence order).
-The checked-in connection string intentionally has no password, so configure
-`ConnectionStrings:DefaultConnection` through user secrets or set
+No connection string is checked in, so configure `ConnectionStrings:DefaultConnection`
+through user secrets or set
 `ConnectionStrings__DefaultConnection` / `MIS_DB_CONNECTION` before running migrations.
 
 Core HR migrations preserve history: employee-related foreign keys are restricted rather
