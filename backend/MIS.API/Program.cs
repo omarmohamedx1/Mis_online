@@ -98,6 +98,8 @@ static void LogConfigurationStatus(ILogger logger, WebApplicationBuilder builder
         !string.IsNullOrWhiteSpace(configuration.GetConnectionString("DefaultConnection")));
     logger.LogInformation("JWT secret configured and meets the minimum length: {Configured}.", jwtReady);
     logger.LogInformation("CORS allowed origin count: {OriginCount}.", allowedOrigins.Length);
+    if (!builder.Environment.IsDevelopment() && allowedOrigins.Length == 0)
+        logger.LogWarning("No production CORS origins are configured; browser frontends on another origin will be blocked.");
     logger.LogInformation(
         "File storage root configured: {Configured}.",
         !string.IsNullOrWhiteSpace(configuration["HrFiles:RootPath"]));
