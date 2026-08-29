@@ -150,6 +150,14 @@ select:not(.sr-only) {
 }
 [dir='rtl'] select:not(.sr-only) { background-position: left 0.8rem center; }
 
+@media (max-width: 767px) {
+  /* The finance pages render card lists on phones. Do not keep their wide
+     desktop tables in the layout tree, even as nested overflow scrollers. */
+  .finance-wide-page > .mt-5.overflow-hidden {
+    display: none;
+  }
+}
+
 @media (max-width: 639px) {
   h1 { line-height: 1.25; }
   .field { font-size: 16px; }

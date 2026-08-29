@@ -51,7 +51,7 @@ export function FinanceCollectionsPage() {
   if (error && !data) return <ErrorState title={error} onRetry={load} />;
   if (!data) return <div className="grid min-h-[420px] place-items-center"><LoadingSpinner /></div>;
 
-  return <div className="finance-wide-page min-w-0 max-w-full overflow-x-hidden">
+  return <div className="finance-wide-page finance-collections-page min-w-0 max-w-full overflow-x-hidden">
     <header>
       <p className="text-xs font-bold uppercase tracking-[.18em] text-mis-primary">COLLECTION FINANCE</p>
       <h1 className="mt-2 text-3xl font-bold text-mis-navy">{f.text('التحصيلات المالية', 'Financial Collections')}</h1>
@@ -76,6 +76,23 @@ export function FinanceCollectionsPage() {
     </section>
 
     {error ? <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
+    <div className="finance-mobile-list mt-5 space-y-3 md:hidden">
+      {data.items.map((row) => <article key={row.receiptId} className="min-w-0 rounded-2xl border border-mis-border bg-white p-4 shadow-sm">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0"><p className="truncate font-mono text-xs font-bold text-mis-primary">{row.referenceNumber}</p><p className="mt-1 truncate font-semibold text-mis-navy">{f.ar ? row.clientNameArabic : row.clientNameEnglish}</p><p className="mt-1 text-xs text-slate-400">{row.clientCode}</p></div>
+          <FinanceStatus value={row.status} />
+        </div>
+        <dl className="mt-4 grid min-w-0 grid-cols-2 gap-3 text-sm">
+          <MobileValue label={f.text('التاريخ', 'Date')} value={f.date(row.paymentDate)} />
+          <MobileValue label={f.text('القناة', 'Channel')} value={f.channel(row.channel)} />
+          <MobileValue label={f.text('المحصل', 'Collector')} value={row.collectorName || '—'} />
+          <MobileValue label={f.text('الإجمالي', 'Gross amount')} value={f.money(row.grossAmount, row.currencyCode)} ltr />
+        </dl>
+        <button type="button" onClick={() => void openDetails(row.paymentId)} className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-mis-pale px-4 text-sm font-bold text-mis-primary"><Eye className="h-4 w-4" />{f.text('عرض التفاصيل', 'View details')}</button>
+      </article>)}
+      {data.items.length === 0 ? <p className="rounded-2xl border border-mis-border bg-white p-8 text-center text-sm text-slate-500">{f.text('لا توجد تحصيلات مالية مطابقة للفلاتر.', 'No financial collections match the selected filters.')}</p> : null}
+      <div className="overflow-hidden rounded-2xl border border-mis-border bg-white"><Pagination page={data.page} pageSize={data.pageSize} totalCount={data.totalCount} totalPages={data.totalPages} onPageChange={(next) => setParams({ ...(status ? { status } : {}), ...(channel ? { channel } : {}), page: String(next) })} /></div>
+    </div>
     <div className="mt-5 min-w-0 max-w-full overflow-hidden rounded-2xl border border-mis-border bg-white shadow-sm">
       <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
         <table className="w-full min-w-[1080px] text-sm">
@@ -161,4 +178,5 @@ function CollectionDetailsDialog({ value, close, changed }: { value: CollectionF
 }
 
 function Info({ label, value }: { label: string; value: string }) { return <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs font-bold text-slate-500">{label}</p><p className="mt-2 font-semibold text-mis-navy">{value}</p></div>; }
+function MobileValue({ label, value, ltr = false }: { label: string; value: string; ltr?: boolean }) { return <div className="min-w-0 rounded-xl bg-slate-50 p-3"><dt className="text-xs font-bold text-slate-500">{label}</dt><dd className="mt-1 break-words font-semibold text-mis-navy" data-bidi={ltr ? 'ltr' : undefined}>{value}</dd></div>; }
 function JournalLink({ label, id, number }: { label: string; id?: string; number?: string }) { return <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs font-bold text-slate-500">{label}</p>{id && number ? <Link className="mt-2 block font-mono text-xs font-bold text-mis-primary hover:underline" to={`/finance/journals/${id}`}>{number}</Link> : <p className="mt-2 text-sm text-slate-400">—</p>}</div>; }
