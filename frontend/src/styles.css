@@ -28,6 +28,9 @@
 
 html {
   min-width: 320px;
+  max-width: 100%;
+  min-height: 100%;
+  overflow-x: clip;
 }
 
 body {
@@ -41,9 +44,14 @@ body {
 
 #root { min-height: 100vh; }
 
+@supports (min-height: 100dvh) {
+  #root { min-height: 100dvh; }
+}
+
 img, svg { max-width: 100%; }
 
-.module-content { min-width: 0; padding-inline-start: 0; transition: padding 200ms ease; }
+.module-shell { width: 100%; min-width: 0; overflow-x: clip; }
+.module-content { width: 100%; min-width: 0; padding-inline-start: 0; transition: padding 200ms ease; }
 .module-sidebar { max-width: calc(100vw - 3rem); }
 @media (min-width: 1024px) {
   .module-sidebar { width: 18rem; max-width: none; transform: translateX(0) !important; }
@@ -67,7 +75,12 @@ img, svg { max-width: 100%; }
 .overflow-auto {
   scrollbar-width: thin;
   scrollbar-color: #b9c9d6 transparent;
+  -webkit-overflow-scrolling: touch;
 }
+
+.overflow-x-auto { max-width: 100%; overscroll-behavior-inline: contain; touch-action: pan-x pan-y; }
+.overflow-y-auto,
+.overflow-auto { overscroll-behavior: contain; }
 
 .module-sidebar-scroll::-webkit-scrollbar,
 .overflow-x-auto::-webkit-scrollbar,
@@ -87,6 +100,28 @@ th, td { vertical-align: middle; }
 thead th { white-space: nowrap; }
 tbody tr { transition: background-color 150ms ease; }
 
+/* Older screens render a few tables directly inside clipped cards. Keep every
+   column reachable on touch devices even when a page misses a scroll wrapper. */
+:where(section, div).overflow-hidden:has(> table) {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+:where(section, div).overflow-hidden:has(> table) > table {
+  min-width: max(48rem, 100%);
+}
+
+/* Legacy page-level dialogs predate the shared Modal component. */
+[role='dialog'].fixed.inset-0 {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+[role='dialog'].fixed.inset-0 > :first-child {
+  max-height: calc(100dvh - 1rem);
+}
+
 select:not(.sr-only) {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -99,6 +134,7 @@ select:not(.sr-only) {
 @media (max-width: 639px) {
   h1 { line-height: 1.25; }
   .field { font-size: 16px; }
+  th, td { padding-inline: 0.875rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

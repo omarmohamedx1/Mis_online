@@ -127,7 +127,7 @@ export function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-mis-ink/45 p-2 backdrop-blur-[2px] sm:p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-mis-ink/45 p-2 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-[max(.5rem,env(safe-area-inset-top))] backdrop-blur-[2px] sm:p-4"
       onMouseDown={(event) => {
         if (closeOnBackdrop && event.target === event.currentTarget) onCloseRef.current();
       }}
@@ -136,7 +136,7 @@ export function Modal({
         aria-describedby={description ? descriptionId : undefined}
         aria-labelledby={titleId}
         aria-modal="true"
-        className={`my-auto flex max-h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden rounded-2xl border border-mis-border bg-white shadow-panel sm:max-h-[calc(100dvh-2rem)] ${sizeClasses[size]} ${className}`}
+        className={`my-auto flex max-h-[calc(100dvh-1rem)] min-w-0 w-full flex-col overflow-hidden rounded-2xl border border-mis-border bg-white shadow-panel sm:max-h-[calc(100dvh-2rem)] ${sizeClasses[size]} ${className}`}
         ref={dialogRef}
         role={dialogRole}
         tabIndex={-1}

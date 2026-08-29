@@ -12,13 +12,13 @@ export function Section({ action, bodyClassName = 'p-5 sm:p-6', children, classN
   const titleId = useId();
 
   return (
-    <section aria-labelledby={titleId} className={`overflow-hidden rounded-2xl border border-mis-border bg-white shadow-sm ${className}`} {...props}>
-      <header className="flex min-h-16 items-start justify-between gap-4 border-b border-mis-border px-5 py-4 sm:px-6">
+    <section aria-labelledby={titleId} className={`min-w-0 overflow-hidden rounded-2xl border border-mis-border bg-white shadow-sm ${className}`} {...props}>
+      <header className="flex min-h-16 flex-col items-stretch justify-between gap-3 border-b border-mis-border px-4 py-4 sm:flex-row sm:items-start sm:gap-4 sm:px-6">
         <div className="min-w-0">
           <h2 className="font-bold text-mis-navy" id={titleId}>{title}</h2>
           {description ? <div className="mt-1 text-sm leading-5 text-slate-500">{description}</div> : null}
         </div>
-        {action ? <div className="flex-none">{action}</div> : null}
+        {action ? <div className="min-w-0 sm:flex-none">{action}</div> : null}
       </header>
       <div className={bodyClassName}>{children}</div>
     </section>
