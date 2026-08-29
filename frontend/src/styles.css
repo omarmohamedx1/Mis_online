@@ -84,6 +84,23 @@ img, svg { max-width: 100%; }
 .overflow-y-auto,
 .overflow-auto { overscroll-behavior: contain; }
 
+/* Collections and custody contain deliberately wide financial tables. Keep
+   their intrinsic table width inside the table scroller so it cannot move the
+   mobile sidebar or widen the RTL page canvas. */
+.finance-wide-page {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.finance-wide-page > .overflow-hidden,
+.finance-wide-page > .overflow-hidden > .overflow-x-auto {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .module-sidebar-scroll::-webkit-scrollbar,
 .overflow-x-auto::-webkit-scrollbar,
 .overflow-y-auto::-webkit-scrollbar,

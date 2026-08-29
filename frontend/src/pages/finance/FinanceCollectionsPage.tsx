@@ -51,7 +51,7 @@ export function FinanceCollectionsPage() {
   if (error && !data) return <ErrorState title={error} onRetry={load} />;
   if (!data) return <div className="grid min-h-[420px] place-items-center"><LoadingSpinner /></div>;
 
-  return <div>
+  return <div className="finance-wide-page min-w-0 max-w-full overflow-x-hidden">
     <header>
       <p className="text-xs font-bold uppercase tracking-[.18em] text-mis-primary">COLLECTION FINANCE</p>
       <h1 className="mt-2 text-3xl font-bold text-mis-navy">{f.text('التحصيلات المالية', 'Financial Collections')}</h1>
@@ -76,8 +76,8 @@ export function FinanceCollectionsPage() {
     </section>
 
     {error ? <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
-    <div className="mt-5 overflow-hidden rounded-2xl border border-mis-border bg-white shadow-sm">
-      <div className="overflow-x-auto">
+    <div className="mt-5 min-w-0 max-w-full overflow-hidden rounded-2xl border border-mis-border bg-white shadow-sm">
+      <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
         <table className="w-full min-w-[1080px] text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr>
             <th className="px-5 py-4 text-start">{f.text('مرجع الإيصال', 'Receipt reference')}</th>

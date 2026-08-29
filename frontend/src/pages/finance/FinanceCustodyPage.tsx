@@ -45,7 +45,7 @@ export function FinanceCustodyPage() {
   const overSoft = rows.filter((row) => row.softLimitExceeded).length;
   const overHard = rows.filter((row) => row.hardLimitExceeded).length;
 
-  return <div>
+  return <div className="finance-wide-page min-w-0 max-w-full overflow-x-hidden">
     <header><p className="text-xs font-bold uppercase tracking-[.18em] text-mis-primary">COLLECTOR CUSTODY</p><h1 className="mt-2 text-3xl font-bold text-mis-navy">{f.text('عهد المحصلين', 'Collector Custody')}</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{f.text('رصيد فرعي لكل محصل مع حدود رقابية وعمر أقدم مبلغ لم يتم توريده وربط كل حركة بالقيد والإيصال.', 'A controlled subledger per collector with limits, oldest unhanded cash, and traceability to every journal and receipt.')}</p></header>
     <section className="mt-6 grid gap-4 sm:grid-cols-3"><FinanceKpi label={f.text('إجمالي العهد القائمة', 'Total outstanding custody')} value={f.money(total)} hint={f.text('أموال عملاء لدى المحصلين', 'Client money held by collectors')} tone="blue" /><FinanceKpi label={f.text('تجاوز الحد التنبيهي', 'Soft-limit breaches')} value={f.number(overSoft)} hint={f.text('تحتاج متابعة المشرف', 'Supervisor follow-up required')} tone={overSoft ? 'amber' : 'green'} /><FinanceKpi label={f.text('تجاوز الحد الأقصى', 'Hard-limit breaches')} value={f.number(overHard)} hint={f.text('يمنع تحصيلًا نقديًا جديدًا', 'Blocks new cash collections')} tone={overHard ? 'red' : 'green'} /></section>
     {error ? <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
